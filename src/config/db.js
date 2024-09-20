@@ -16,7 +16,7 @@ const masterDb = mysql.createPool({
 // Function to connect to Tenant Database dynamically
 const getTenantDb = async (tenantDbName) => {
     return mysql.createPool({
-        host: process.env.TENANT_DB_HOST,  // Or dynamic host from DB record
+        host: process.env.MASTER_DB_HOST,
         user: process.env.TENANT_DB_USER,
         password: process.env.TENANT_DB_PASSWORD,
         database: tenantDbName,

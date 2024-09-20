@@ -161,7 +161,6 @@ const createTenantSchema = async (dbName) => {
     `);
     // Create the stored procedure to populate enum tables
     await tenantDb.query(`
-        DELIMITER //
         CREATE PROCEDURE PopulateEnumTables()
         BEGIN
             -- Insert values into ShiftTypes table
@@ -196,8 +195,7 @@ const createTenantSchema = async (dbName) => {
             ('Emergency Medicine'), 
             ('Cardiology'), 
             ('Oncology');
-        END //
-        DELIMITER ;
+        END
     `);
 
     // Call the stored procedure to populate the tables
