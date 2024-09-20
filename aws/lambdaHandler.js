@@ -1,5 +1,5 @@
 // aws/lambdaHandler.js
-const { createNewTenant, deleteTenant } = require('../src/services/tenantService');
+const { createNewTenant, deleteTenant } = require('../services/tenantService');
 
 exports.handler = async (event) => {
     try {

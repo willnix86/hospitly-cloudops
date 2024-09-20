@@ -1,5 +1,5 @@
 // scripts/createTenant.js
-const { createNewTenant } = require('../src/services/tenantService');
+const { createNewTenant } = require('../services/tenantService');
 
 (async () => {
     try {

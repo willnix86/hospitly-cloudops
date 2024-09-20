@@ -1,5 +1,5 @@
 // scripts/deleteTenant.js
-const { deleteTenant } = require('../src/services/tenantService');
+const { deleteTenant } = require('../services/tenantService');
 
 (async () => {
     try {
