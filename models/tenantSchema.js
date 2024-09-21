@@ -1,8 +1,8 @@
 const { getTenantDb } = require('../config/db');
 
 // Function to create the schema and populate default data in the tenant's database
-const createTenantSchema = async (dbName) => {
-    const tenantDb = await getTenantDb(dbName);
+const createTenantSchema = async (hospitalName) => {
+    const tenantDb = await getTenantDb(hospitalName);
 
     // Create the stored procedure to create tables and copy data from the master database
     await tenantDb.query(`
@@ -179,9 +179,9 @@ const createTenantSchema = async (dbName) => {
 };
 
 // Function to drop tenant's database schema
-const deleteTenantSchema = async (dbName) => {
-    const tenantDb = await getTenantDb(dbName);
-    await tenantDb.query(`DROP DATABASE IF EXISTS ${dbName}`);
+const deleteTenantSchema = async (hospitalName) => {
+    const tenantDb = await getTenantDb(hospitalName);
+    await tenantDb.query(`DROP DATABASE IF EXISTS ${hospitalName}`);
 };
 
 module.exports = { createTenantSchema, deleteTenantSchema };
