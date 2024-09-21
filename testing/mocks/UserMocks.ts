@@ -1,4 +1,4 @@
-const users = [
+const users: Array<User> = [
     { full_name: 'Taylor Booth', position: 'PGY5', department: 'General Surgery', isEditor: false },
     { full_name: 'Jordan Cole', position: 'PGY4', department: 'General Surgery', isEditor: false },
     { full_name: 'Jamie Hulse', position: 'PGY3', department: 'General Surgery', isEditor: false },

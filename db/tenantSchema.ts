@@ -1,11 +1,11 @@
-const { getTenantDb } = require('../config/db');
+import { getTenantDb } from './db';
+import { Pool } from 'mysql2/promise';
 
-// Function to create the schema and populate default data in the tenant's database
-const createTenantSchema = async (hospitalName) => {
-    const tenantDb = await getTenantDb(hospitalName);
+export const createTenantSchema = async (hospitalName: string): Promise<void> => {
+  const tenantDb: Pool = await getTenantDb(hospitalName);
 
-    // Create the stored procedure to create tables and copy data from the master database
-    await tenantDb.query(`
+  // Create the stored procedure to create tables and copy data from the master database
+  await tenantDb.query(`
         CREATE PROCEDURE SetupTenantSchema()
         BEGIN
             -- Create Positions table
@@ -172,16 +172,13 @@ const createTenantSchema = async (hospitalName) => {
         END
     `);
 
-    // Call the stored procedure to create tables and populate the default data
-    await tenantDb.query(`CALL SetupTenantSchema();`);
+  // Call the stored procedure to create tables and populate the default data
+  await tenantDb.query(`CALL SetupTenantSchema();`);
 
-    console.log('Tenant schema created and default data populated.');
+  console.log('Tenant schema created and default data populated.');
 };
 
-// Function to drop tenant's database schema
-const deleteTenantSchema = async (hospitalName) => {
-    const tenantDb = await getTenantDb(hospitalName);
-    await tenantDb.query(`DROP DATABASE IF EXISTS ${hospitalName}`);
+export const deleteTenantSchema = async (hospitalName: string): Promise<void> => {
+  const tenantDb: Pool = await getTenantDb(hospitalName);
+  await tenantDb.query(`DROP DATABASE IF EXISTS ${hospitalName}`);
 };
-
-module.exports = { createTenantSchema, deleteTenantSchema };
