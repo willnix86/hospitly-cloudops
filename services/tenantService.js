@@ -1,4 +1,3 @@
-// src/services/tenantService.js
 const { createAccount, deleteAccount } = require('../models/accountSchema');
 const { createTenantSchema, deleteTenantSchema } = require('../models/tenantSchema');
 const mysql = require('mysql2/promise');
