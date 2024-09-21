@@ -1,3 +1,5 @@
+import { RowDataPacket } from 'mysql2/promise';
+
 export interface Shift {
     id: number;
     userId: number;
@@ -14,3 +16,6 @@ export interface ShiftType {
     endTime: string;    // e.g., "18:00:00"
 }
 
+export interface Schedule {
+    [name: string]: string[];
+}

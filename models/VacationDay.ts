@@ -1,18 +1,18 @@
 import { RowDataPacket } from 'mysql2/promise';
 
-export interface VacationDay extends RowDataPacket {
+export interface VacationDay {
   id: number;
   userId: number;
   vacationDate: string; // e.g., "YYYY-MM-DD"
 }
 
-export interface AdminDay extends RowDataPacket {
+export interface AdminDay {
   id: number;
   userId: number;
   adminDate: string; // e.g., "YYYY-MM-DD"
 }
 
-export interface Request extends RowDataPacket {
+export interface Request {
     id: number;
     userId: number;
     requestTypeId: number;

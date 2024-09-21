@@ -1,6 +1,6 @@
 import { RowDataPacket } from 'mysql2/promise';
 
-export interface Rule extends RowDataPacket {
+export interface Rule {
   id: number;
   name: string;
   value: number;

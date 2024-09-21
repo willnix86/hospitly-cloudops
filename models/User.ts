@@ -1,19 +1,19 @@
 import { RowDataPacket } from 'mysql2/promise';
 
-export interface User extends RowDataPacket {
-    id: number;
+export interface User {
+    id?: number;
     name: string;
     positionId: number;
     departmentId: number;
     isEditor: boolean;
 }
 
-export interface Department extends RowDataPacket {
+export interface Department {
     id: number;
     name: string;
 }
 
-export interface Position extends RowDataPacket {
+export interface Position {
     id: number;
     name: string;
 }
