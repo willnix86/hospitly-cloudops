@@ -9,6 +9,6 @@
     "outDir": "./dist",
     "rootDir": "./"
   },
-  "include": ["*"],
+  "include": ["*", "services/utilities"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }

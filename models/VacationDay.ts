@@ -1,19 +1,19 @@
 import { RowDataPacket } from 'mysql2/promise';
 
 export interface VacationDay {
-  id: number;
+  id?: number;
   userId: number;
-  vacationDate: string; // e.g., "YYYY-MM-DD"
+  date: string; // e.g., "YYYY-MM-DD"
 }
 
 export interface AdminDay {
-  id: number;
+  id?: number;
   userId: number;
-  adminDate: string; // e.g., "YYYY-MM-DD"
+  date: string; // e.g., "YYYY-MM-DD"
 }
 
 export interface Request {
-    id: number;
+    id?: number;
     userId: number;
     requestTypeId: number;
     statusId: number;
