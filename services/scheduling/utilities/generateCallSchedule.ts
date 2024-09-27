@@ -8,10 +8,9 @@ const generateCallSchedule = (
   daysInMonth: number,
   year: number,
   month: number,
-  previousMonthSchedule: Schedule | null = null // new optional parameter for previous month schedule
+  previousMonthSchedule: Schedule | null = null // optional parameter for previous month schedule
 ): Schedule => {
   const maxWorkHoursRule = rules.find(rule => rule.name === 'Max Work Hours')?.value || 80;
-  const minRestAfter24hShiftRule = rules.find(rule => rule.name === 'Min Rest After 24h Shift')?.value || 12;
 
   // Initialize the empty schedule
   const schedule: Schedule = {};
@@ -46,7 +45,7 @@ const generateCallSchedule = (
     const date = new Date(year, month - 1, day).toISOString().split('T')[0];
     const prevDay = new Date(year, month - 1, day - 1).toISOString().split('T')[0];
 
-    if (userSchedule[date] === 'Off (Vacation)' || userSchedule[date] === 'Off (Admin)') {
+    if (userSchedule[date] === 'Off (Vacation)' || userSchedule[date] === 'Off (Admin)' || userSchedule[date] === 'Off (Rest)') {
       return false;
     }
 
@@ -55,16 +54,17 @@ const generateCallSchedule = (
       return false;
     }
 
+    // Check rest after 24-hour shift
+    if (userSchedule[prevDay] === 'On-Call') {
+      return false; // They must rest the next day - adheres to min-rest after 24 hour shift
+    }
+
     // Check if the user had a shift on the last day of the previous month
     if (day === 1 && previousMonthSchedule) {
       const lastDayOfPreviousMonth = new Date(year, month - 2, new Date(year, month - 1, 0).getDate()).toISOString().split('T')[0];
       if (previousMonthSchedule[user.name]?.[lastDayOfPreviousMonth] === 'On-Call') {
         return false;
       }
-    }
-
-    if (userSchedule[prevDay] === 'On-Call') {
-      return false;
     }
 
     return true;
@@ -113,6 +113,48 @@ const generateCallSchedule = (
     return distributeShifts(day + 1); // Recursively assign the next day
   };
 
+  // Rebalancing function to evenly distribute shifts across all users
+  const rebalanceShifts = () => {
+    // Step 1: Count the total number of shifts per user
+    const shiftsCount = users.map(user => {
+      const userSchedule = schedule[user.name];
+      const onCallShifts = Object.values(userSchedule).filter(shift => shift === 'On-Call').length;
+      return { user, onCallShifts };
+    });
+
+    // Step 2: Identify the users with the most and least shifts
+    const maxShifts = Math.max(...shiftsCount.map(sc => sc.onCallShifts));
+    const minShifts = Math.min(...shiftsCount.map(sc => sc.onCallShifts));
+
+    // Step 3: Reassign shifts if there's a significant imbalance
+    if (maxShifts - minShifts > 1) {
+      const usersWithMaxShifts = shiftsCount.filter(sc => sc.onCallShifts === maxShifts).map(sc => sc.user);
+      const usersWithMinShifts = shiftsCount.filter(sc => sc.onCallShifts === minShifts).map(sc => sc.user);
+
+      usersWithMaxShifts.forEach(userWithMax => {
+        const userScheduleMax = schedule[userWithMax.name];
+
+        // Find an On-Call shift that can be reassigned
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = new Date(year, month - 1, day).toISOString().split('T')[0];
+          if (userScheduleMax[date] === 'On-Call') {
+            // Try to find a user with fewer shifts who can take over
+            for (const userWithMin of usersWithMinShifts) {
+              const userScheduleMin = schedule[userWithMin.name];
+              if (canWorkShift(userWithMin, userScheduleMin, day)) {
+                // Reassign the shift
+                userScheduleMax[date] = '';
+                userScheduleMin[date] = 'On-Call';
+                break;
+              }
+            }
+            break;
+          }
+        }
+      });
+    }
+  };
+
   // Begin scheduling process for each user
   users.forEach(user => {
     markDaysOff(user, schedule); // Mark vacation/admin days
@@ -121,29 +163,8 @@ const generateCallSchedule = (
   // Begin distributing shifts
   distributeShifts(1);
 
-  // Final balancing pass to ensure fairness between months
-  users.forEach(user => {
-    const userSchedule = schedule[user.name];
-    const totalShiftsThisMonth = Object.values(userSchedule).filter(shift => shift === 'On-Call').length;
-
-    if (previousMonthSchedule) {
-      const previousMonthShifts = Object.values(previousMonthSchedule[user.name]).filter(shift => shift === 'On-Call').length;
-
-      // Check for imbalance and redistribute shifts if necessary
-      if (previousMonthShifts + totalShiftsThisMonth < 3) {
-        // Identify days where they can take extra shifts and adjust the schedule
-        for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(year, month - 1, day).toISOString().split('T')[0];
-          if (userSchedule[date] === '' && canWorkShift(user, userSchedule, day)) {
-            userSchedule[date] = 'On-Call';
-            if (Object.values(userSchedule).filter(shift => shift === 'On-Call').length >= 3) {
-              break; // Limit total shifts after redistribution
-            }
-          }
-        }
-      }
-    }
-  });
+  // Perform rebalancing to ensure fairness
+  rebalanceShifts();
 
   return schedule;
 };
