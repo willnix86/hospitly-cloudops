@@ -3,14 +3,14 @@ import { User } from '../models';
 import { Pool, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 export const addUserToTenant = async (hospitalName: string, user: User): Promise<void> => {
-  const { name, positionId, departmentId, isEditor } = user;
+  const { name, position, department, isEditor } = user;
 
   const tenantDb = await getTenantDb(hospitalName);
 
   await tenantDb.query(
     `INSERT INTO Users (Name, PositionID, DepartmentID, isEditor)
      VALUES (?, ?, ?, ?)`,
-    [name, positionId, departmentId, isEditor]
+    [name, position.id, department.id, isEditor]
   );
 
   console.log(`User ${name} added to tenant ${hospitalName}`);

@@ -77,7 +77,7 @@ export const createTenantSchema = async (hospitalName: string): Promise<void> =>
             );
 
             -- Create DaysOfWeek table
-            CREATE TABLE IF NOT EXISTS DaysOfWeek (
+            CREATE TABLE IF NOT EXISTS DayOfWeek (
                 ID INT AUTO_INCREMENT PRIMARY KEY,
                 DayName VARCHAR(20) NOT NULL,
                 WeekID INT,

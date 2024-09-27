@@ -1,8 +1,8 @@
 import { getTenantDb } from '../../db/db';
-import fetchSchedulingData from './utilities/fetchSchedulingData';
-import generateCallSchedule from './utilities/generateCallSchedule';
+import fetchSchedulingData from './functions/fetchSchedulingData';
+import generateCallSchedule from './functions/generateCallSchedule';
 
-import { Schedule } from '../../models';
+import { Schedule, Department } from '../../models';
 
 const getDaysInMonth = (
   month: number, 
@@ -15,15 +15,15 @@ export const generateSchedule = async (
   tenantDbName: string,
   month: number, 
   year: number,
-  departmentID: number,
-  previousMonthSchedule: Schedule | null
+  department: Department,
+  previousMonthSchedule: Schedule | null = null
 ): Promise<{[userName: string]: { [date: string]: string }}> => {
   const tenantDb = await getTenantDb(tenantDbName);
   
   const daysInMonth = getDaysInMonth(month, year);
   
-  // TODO: fetch precious month schedule from db
-  const { users, vacations, adminDays, rules } = await fetchSchedulingData(tenantDb, month, year, departmentID);
+  // TODO: fetch previous month schedule from db
+  const { users, vacations, adminDays, rules } = await fetchSchedulingData(tenantDb, month, year, department);
 
   let schedule = generateCallSchedule(users, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
 

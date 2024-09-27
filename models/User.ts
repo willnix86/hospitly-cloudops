@@ -1,10 +1,8 @@
-import { RowDataPacket } from 'mysql2/promise';
-
 export interface User {
     id?: number;
     name: string;
-    positionId: number;
-    departmentId: number;
+    position: Position;
+    department: Department;
     isEditor: boolean;
 }
 

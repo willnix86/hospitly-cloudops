@@ -12,6 +12,10 @@ const generateCallSchedule = (
 ): Schedule => {
   const maxWorkHoursRule = rules.find(rule => rule.name === 'Max Work Hours')?.value || 80;
 
+  // Separate users into junior and senior residents based on position
+  const juniorResidents = users.filter(user => ['PGY1', 'PGY2', 'PGY3'].includes(user.position.name));
+  const seniorResidents = users.filter(user => ['PGY4', 'PGY5', 'PGY6'].includes(user.position.name));
+
   // Initialize the empty schedule
   const schedule: Schedule = {};
   users.forEach(user => {
@@ -26,14 +30,14 @@ const generateCallSchedule = (
   const markDaysOff = (user: User, schedule: Schedule) => {
     const userSchedule = schedule[user.name];
     vacations
-      .filter(v => v.userId === user.id)
+      .filter(v => v.user.id === user.id)
       .forEach(v => {
         const vacationDate = v.date.toString().split('T')[0];
         userSchedule[vacationDate] = 'Off (Vacation)';
       });
 
     adminDays
-      .filter(a => a.userId === user.id)
+      .filter(a => a.user.id === user.id)
       .forEach(a => {
         const adminDate = a.date.toString().split('T')[0];
         userSchedule[adminDate] = 'Off (Admin)';
@@ -92,20 +96,31 @@ const generateCallSchedule = (
   const distributeShifts = (day: number): boolean => {
     if (day > daysInMonth) return true;
 
-    let assignedUsers = 0;
+    let assignedJunior = false;
+    let assignedSenior = false;
     const date = new Date(year, month - 1, day).toISOString().split('T')[0];
 
-    const sortedUsers = sortUsersByPreviousShifts(users, previousMonthSchedule);
-
-    sortedUsers.forEach(user => {
+    // First assign junior residents
+    const sortedJuniorResidents = sortUsersByPreviousShifts(juniorResidents, previousMonthSchedule);
+    sortedJuniorResidents.forEach(user => {
       const userSchedule = schedule[user.name];
-      if (canWorkShift(user, userSchedule, day) && assignedUsers < 2) {
+      if (canWorkShift(user, userSchedule, day) && !assignedJunior) {
         userSchedule[date] = 'On-Call';
-        assignedUsers++;
+        assignedJunior = true;
       }
     });
 
-    if (assignedUsers < 2) {
+    // Then assign senior residents
+    const sortedSeniorResidents = sortUsersByPreviousShifts(seniorResidents, previousMonthSchedule);
+    sortedSeniorResidents.forEach(user => {
+      const userSchedule = schedule[user.name];
+      if (canWorkShift(user, userSchedule, day) && !assignedSenior) {
+        userSchedule[date] = 'On-Call';
+        assignedSenior = true;
+      }
+    });
+
+    if (!assignedJunior || !assignedSenior) {
       // Not enough coverage for the day
       return false;
     }
@@ -115,44 +130,52 @@ const generateCallSchedule = (
 
   // Rebalancing function to evenly distribute shifts across all users
   const rebalanceShifts = () => {
-    // Step 1: Count the total number of shifts per user
-    const shiftsCount = users.map(user => {
-      const userSchedule = schedule[user.name];
-      const onCallShifts = Object.values(userSchedule).filter(shift => shift === 'On-Call').length;
-      return { user, onCallShifts };
-    });
-
-    // Step 2: Identify the users with the most and least shifts
-    const maxShifts = Math.max(...shiftsCount.map(sc => sc.onCallShifts));
-    const minShifts = Math.min(...shiftsCount.map(sc => sc.onCallShifts));
-
-    // Step 3: Reassign shifts if there's a significant imbalance
-    if (maxShifts - minShifts > 1) {
-      const usersWithMaxShifts = shiftsCount.filter(sc => sc.onCallShifts === maxShifts).map(sc => sc.user);
-      const usersWithMinShifts = shiftsCount.filter(sc => sc.onCallShifts === minShifts).map(sc => sc.user);
-
-      usersWithMaxShifts.forEach(userWithMax => {
-        const userScheduleMax = schedule[userWithMax.name];
-
-        // Find an On-Call shift that can be reassigned
-        for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(year, month - 1, day).toISOString().split('T')[0];
-          if (userScheduleMax[date] === 'On-Call') {
-            // Try to find a user with fewer shifts who can take over
-            for (const userWithMin of usersWithMinShifts) {
-              const userScheduleMin = schedule[userWithMin.name];
-              if (canWorkShift(userWithMin, userScheduleMin, day)) {
-                // Reassign the shift
-                userScheduleMax[date] = '';
-                userScheduleMin[date] = 'On-Call';
-                break;
-              }
-            }
-            break;
-          }
-        }
+    const rebalanceGroup = (group: User[]) => {
+      // Step 1: Count the total number of shifts per user
+      const shiftsCount = group.map(user => {
+        const userSchedule = schedule[user.name];
+        const onCallShifts = Object.values(userSchedule).filter(shift => shift === 'On-Call').length;
+        return { user, onCallShifts };
       });
-    }
+
+      // Step 2: Identify the users with the most and least shifts
+      const maxShifts = Math.max(...shiftsCount.map(sc => sc.onCallShifts));
+      const minShifts = Math.min(...shiftsCount.map(sc => sc.onCallShifts));
+
+      // Step 3: Reassign shifts if there's a significant imbalance
+      if (maxShifts - minShifts > 1) {
+        const usersWithMaxShifts = shiftsCount.filter(sc => sc.onCallShifts === maxShifts).map(sc => sc.user);
+        const usersWithMinShifts = shiftsCount.filter(sc => sc.onCallShifts === minShifts).map(sc => sc.user);
+
+        usersWithMaxShifts.forEach(userWithMax => {
+          const userScheduleMax = schedule[userWithMax.name];
+
+          // Find an On-Call shift that can be reassigned
+          for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month - 1, day).toISOString().split('T')[0];
+            if (userScheduleMax[date] === 'On-Call') {
+              // Try to find a user with fewer shifts who can take over
+              for (const userWithMin of usersWithMinShifts) {
+                const userScheduleMin = schedule[userWithMin.name];
+                if (canWorkShift(userWithMin, userScheduleMin, day)) {
+                  // Reassign the shift
+                  userScheduleMax[date] = '';
+                  userScheduleMin[date] = 'On-Call';
+                  break;
+                }
+              }
+              break;
+            }
+          }
+        });
+      }
+    };
+
+    // Rebalance junior residents
+    rebalanceGroup(juniorResidents);
+
+    // Rebalance senior residents
+    rebalanceGroup(seniorResidents);
   };
 
   // Begin scheduling process for each user

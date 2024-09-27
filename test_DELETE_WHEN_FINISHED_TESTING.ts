@@ -1,11 +1,11 @@
 // test/createTenantTest.ts
-const { getTenantDb } = require('./services/tenantService.ts');
-const { createNewTenant } = require('./services/tenantService.ts');
-const { addUsersToTenant } = require('./services/userService.ts');
-const { generateSchedule } = require('./services/scheduling/scheduleService.ts');
-const { users } = require('./testing/mocks/UserMocks.ts');
+import { generateSchedule } from './services/scheduling/scheduleService';
+import { departments } from './testing/mocks/UserMocks';
+import { Department } from './models';
 
 const main = async (hospitalName: string) => {
+    const plastics: Department = departments.find((department) => department.id == 33)!;
+
     try {
         // // create a new tenant
         // const accountId = await createNewTenant('MUSC Health University Medical Center', 'Dr. John Doe', 'johndoe@testhospital.com', 'testuser', 'testpassword');
@@ -16,11 +16,11 @@ const main = async (hospitalName: string) => {
         // console.log('All users added successfully.');
 
         // generate a schedule for the tenant
-        const octoberSchedule = await generateSchedule(hospitalName, 10, 2024, 33);
-        // console.log('October schedule generated:', octoberSchedule);
+        const octoberSchedule = await generateSchedule(hospitalName, 10, 2024, plastics);
+        console.log('October schedule generated:', octoberSchedule);
 
-        const novemberSchedule = await generateSchedule(hospitalName, 11, 2024, 33, octoberSchedule);
-        console.log('November schedule generated:', novemberSchedule);
+        const novemberSchedule = await generateSchedule(hospitalName, 11, 2024, plastics, octoberSchedule);
+        // console.log('November schedule generated:', novemberSchedule);
 
     } catch (error) {
         console.error('Test failed:', error);
