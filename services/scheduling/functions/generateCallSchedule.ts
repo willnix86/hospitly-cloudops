@@ -74,22 +74,22 @@ const generateCallSchedule = (
     return true;
   };
 
-  // Sort users based on whether they had no shifts in the previous month
-  const sortUsersByPreviousShifts = (users: User[], previousMonthSchedule: Schedule | null): User[] => {
-    if (!previousMonthSchedule) return users;
+  // Prioritize users with fewer shifts and who were less active in the previous month
+  const prioritizeUsersByShiftCountAndPreviousMonth = (users: User[], schedule: Schedule, previousMonthSchedule: Schedule | null) => {
+    return users.sort((a, b) => {
+      const aShiftsCurrentMonth = Object.values(schedule[a.name]).filter(shift => shift === 'On-Call').length;
+      const bShiftsCurrentMonth = Object.values(schedule[b.name]).filter(shift => shift === 'On-Call').length;
 
-    const usersWithNoShifts = users.filter(user => {
-      const userSchedule = previousMonthSchedule[user.name];
-      return userSchedule && !Object.values(userSchedule).includes('On-Call');
+      const aShiftsPreviousMonth = previousMonthSchedule
+        ? Object.values(previousMonthSchedule[a.name] || {}).filter(shift => shift === 'On-Call').length
+        : 0;
+      const bShiftsPreviousMonth = previousMonthSchedule
+        ? Object.values(previousMonthSchedule[b.name] || {}).filter(shift => shift === 'On-Call').length
+        : 0;
+
+      // Sort primarily by total shifts in current month, then by shifts in the previous month
+      return (aShiftsCurrentMonth - bShiftsCurrentMonth) || (aShiftsPreviousMonth - bShiftsPreviousMonth);
     });
-
-    const usersWithShifts = users.filter(user => {
-      const userSchedule = previousMonthSchedule[user.name];
-      return userSchedule && Object.values(userSchedule).includes('On-Call');
-    });
-
-    // Prioritize users with no shifts in the previous month
-    return [...usersWithNoShifts, ...usersWithShifts];
   };
 
   // Main function to distribute shifts evenly across residents
@@ -100,29 +100,39 @@ const generateCallSchedule = (
     let assignedSenior = false;
     const date = new Date(year, month - 1, day).toISOString().split('T')[0];
 
-    // First assign junior residents
-    const sortedJuniorResidents = sortUsersByPreviousShifts(juniorResidents, previousMonthSchedule);
-    sortedJuniorResidents.forEach(user => {
+    // First assign junior residents, considering the previous month
+    const prioritizedJuniorResidents = prioritizeUsersByShiftCountAndPreviousMonth(juniorResidents, schedule, previousMonthSchedule);
+    for (const user of prioritizedJuniorResidents) {
       const userSchedule = schedule[user.name];
       if (canWorkShift(user, userSchedule, day) && !assignedJunior) {
         userSchedule[date] = 'On-Call';
         assignedJunior = true;
+        break;
       }
-    });
+    }
 
-    // Then assign senior residents
-    const sortedSeniorResidents = sortUsersByPreviousShifts(seniorResidents, previousMonthSchedule);
-    sortedSeniorResidents.forEach(user => {
+    // Then assign senior residents, considering the previous month
+    const prioritizedSeniorResidents = prioritizeUsersByShiftCountAndPreviousMonth(seniorResidents, schedule, previousMonthSchedule);
+    for (const user of prioritizedSeniorResidents) {
       const userSchedule = schedule[user.name];
       if (canWorkShift(user, userSchedule, day) && !assignedSenior) {
         userSchedule[date] = 'On-Call';
         assignedSenior = true;
+        break;
       }
-    });
+    }
 
+    // Ensure every day has at least one junior and senior resident on-call
     if (!assignedJunior || !assignedSenior) {
-      // Not enough coverage for the day
-      return false;
+      // Force assign a resident if no one was available
+      if (!assignedJunior && juniorResidents.length > 0) {
+        schedule[juniorResidents[0].name][date] = 'On-Call'; // Force assignment
+        assignedJunior = true;
+      }
+      if (!assignedSenior && seniorResidents.length > 0) {
+        schedule[seniorResidents[0].name][date] = 'On-Call'; // Force assignment
+        assignedSenior = true;
+      }
     }
 
     return distributeShifts(day + 1); // Recursively assign the next day

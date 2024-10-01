@@ -1,7 +1,8 @@
 // test/createTenantTest.ts
 import { generateSchedule } from './services/scheduling/scheduleService';
-import { departments } from './testing/mocks/UserMocks';
 import { Department } from './models';
+import { departments, users } from './testing/mocks/UserMocks';
+import { createOnCallTable } from './testing/helpers/createOnCallTable';
 
 const main = async (hospitalName: string) => {
     const plastics: Department = departments.find((department) => department.id == 33)!;
@@ -17,9 +18,15 @@ const main = async (hospitalName: string) => {
 
         // generate a schedule for the tenant
         const octoberSchedule = await generateSchedule(hospitalName, 10, 2024, plastics);
-        console.log('October schedule generated:', octoberSchedule);
+        const octoberTable = createOnCallTable(octoberSchedule, users, 10, 2024);
+        // console.log(octoberTable);
+
+        // console.log('October schedule generated:', octoberSchedule);
 
         const novemberSchedule = await generateSchedule(hospitalName, 11, 2024, plastics, octoberSchedule);
+        const novemberTable = createOnCallTable(novemberSchedule, users, 11, 2024);
+        console.log(novemberTable);
+
         // console.log('November schedule generated:', novemberSchedule);
 
     } catch (error) {

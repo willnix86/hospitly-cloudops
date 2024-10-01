@@ -1,4 +1,4 @@
-import { User } from './User.ts';
+import { User } from './User';
 
 export interface Shift {
     id?: number;
