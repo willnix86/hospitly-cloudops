@@ -138,11 +138,12 @@ export const createTenantSchema = async (hospitalName: string): Promise<void> =>
                 FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE
             );
 
-            -- Create VacationDays table
-            CREATE TABLE IF NOT EXISTS VacationDays (
+            -- Create Vacations table
+            CREATE TABLE IF NOT EXISTS Vacations (
                 ID INT AUTO_INCREMENT PRIMARY KEY,
                 UserID INT,
-                VacationDate DATE NOT NULL,
+                StartDate DATE NOT NULL,
+                EndDate DATE NOT NULL,
                 FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE
             );
 

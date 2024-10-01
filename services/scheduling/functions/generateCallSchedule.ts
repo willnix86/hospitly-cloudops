@@ -1,9 +1,11 @@
-import { User, Rule, VacationDay, AdminDay, Schedule } from '../../../models';
+import { format, eachDayOfInterval } from 'date-fns'; // Importing date-fns to help with date handling
+
+import { User, Rule, Vacation, AdminDay, Schedule } from '../../../models';
 
 const generateCallSchedule = (
   users: User[],
   rules: Rule[],
-  vacations: VacationDay[],
+  vacations: Vacation[],
   adminDays: AdminDay[],
   daysInMonth: number,
   year: number,
@@ -29,13 +31,25 @@ const generateCallSchedule = (
   // Mark vacation and admin days
   const markDaysOff = (user: User, schedule: Schedule) => {
     const userSchedule = schedule[user.name];
+  
+    // Handle vacations with startDate and endDate
     vacations
       .filter(v => v.user.id === user.id)
       .forEach(v => {
-        const vacationDate = v.date.toString().split('T')[0];
-        userSchedule[vacationDate] = 'Off (Vacation)';
+        // Generate the array of dates between startDate and endDate
+        const vacationDates = eachDayOfInterval({
+          start: new Date(v.startDate),
+          end: new Date(v.endDate)
+        });
+  
+        // Mark each date in the vacation period as 'Off (Vacation)'
+        vacationDates.forEach(date => {
+          const vacationDate = format(date, 'yyyy-MM-dd'); // Format date to 'YYYY-MM-DD'
+          userSchedule[vacationDate] = 'Off (Vacation)';
+        });
       });
-
+  
+    // Handle admin days (no change required)
     adminDays
       .filter(a => a.user.id === user.id)
       .forEach(a => {
@@ -46,31 +60,33 @@ const generateCallSchedule = (
 
   // Helper function to check if user can take on-call shift
   const canWorkShift = (user: User, userSchedule: { [date: string]: string }, day: number): boolean => {
-    const date = new Date(year, month - 1, day).toISOString().split('T')[0];
-    const prevDay = new Date(year, month - 1, day - 1).toISOString().split('T')[0];
-
-    if (userSchedule[date] === 'Off (Vacation)' || userSchedule[date] === 'Off (Admin)' || userSchedule[date] === 'Off (Rest)') {
+    const currentDate = new Date(year, month - 1, day).toISOString().split('T')[0];
+    const previousDate = new Date(year, month - 1, day - 1).toISOString().split('T')[0];
+  
+    // Ensure no conflicts with vacation, admin, or rest days
+    if (userSchedule[currentDate] === 'Off (Vacation)' || userSchedule[currentDate] === 'Off (Admin)' || userSchedule[currentDate] === 'Off (Rest)') {
       return false;
     }
-
+  
+    // Check total shifts and respect the max work hours rule
     const totalOnCallShifts = Object.values(userSchedule).filter(shift => shift === 'On-Call').length;
     if (totalOnCallShifts * 24 >= maxWorkHoursRule) {
       return false;
     }
-
-    // Check rest after 24-hour shift
-    if (userSchedule[prevDay] === 'On-Call') {
-      return false; // They must rest the next day - adheres to min-rest after 24 hour shift
+  
+    // Ensure there's at least a 12-hour rest between shifts
+    if (userSchedule[previousDate] === 'On-Call') {
+      return false; // Rest needed after an on-call shift
     }
-
+  
     // Check if the user had a shift on the last day of the previous month
     if (day === 1 && previousMonthSchedule) {
       const lastDayOfPreviousMonth = new Date(year, month - 2, new Date(year, month - 1, 0).getDate()).toISOString().split('T')[0];
       if (previousMonthSchedule[user.name]?.[lastDayOfPreviousMonth] === 'On-Call') {
-        return false;
+        return false; // Rest required on the first day of the current month if they worked on the last day of the previous month
       }
     }
-
+  
     return true;
   };
 

@@ -1,15 +1,16 @@
 import { User } from './User';
 
-export interface VacationDay {
+export interface Vacation {
   id?: number;
   user: User;
-  date: string; // e.g., "YYYY-MM-DD"
+  startDate: string; // e.g., "YYYY-MM-DD",
+  endDate: string;
 }
 
 export interface AdminDay {
   id?: number;
   user: User;
-  date: string; // e.g., "YYYY-MM-DD"
+  date: string; 
 }
 
 export interface Request {
