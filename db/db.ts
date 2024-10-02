@@ -1,9 +1,9 @@
-// src/config/db.js
-require('dotenv').config();
-const mysql = require('mysql2/promise');
+import dotenv from 'dotenv';
+import mysql, { Pool } from 'mysql2/promise';
 
-// Master DB Connection
-const masterDb = mysql.createPool({
+dotenv.config();
+
+export const masterDb: Pool = mysql.createPool({
     host: process.env.MASTER_DB_HOST,
     user: process.env.MASTER_DB_USER,
     password: process.env.MASTER_DB_PASSWORD,
@@ -13,8 +13,7 @@ const masterDb = mysql.createPool({
     queueLimit: 0
 });
 
-// Function to connect to Tenant Database dynamically
-const getTenantDb = async (hospitalName) => {
+export const getTenantDb = async (hospitalName: string): Promise<Pool> => {
     const dbName = `${hospitalName.toLowerCase().replace(/\s/g, '_')}_tenant_db`;
     return mysql.createPool({
         host: process.env.MASTER_DB_HOST,
@@ -26,5 +25,3 @@ const getTenantDb = async (hospitalName) => {
         queueLimit: 0
     });
 };
-
-module.exports = { masterDb, getTenantDb };
