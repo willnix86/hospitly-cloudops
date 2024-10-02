@@ -1,6 +1,14 @@
 import { User } from './User';
 
-export interface Shift {
+enum ShiftTypeEnum {
+    OnCall = 'On-Call',
+    Vacation = 'Off (Vacation)',
+    Admin = 'Off (Admin)',
+    Rest = 'Off (Rest)',
+    Available = ''
+}
+
+interface Shift {
     id?: number;
     user: User;
     day: DayOfWeek;
@@ -9,20 +17,22 @@ export interface Shift {
     endTime: string;    // e.g., "18:00:00"
 }
 
-export interface ShiftType {
+interface ShiftType {
     id?: number;
     name: string;
     startTime: string;  // e.g., "06:00:00"
     endTime: string;    // e.g., "18:00:00"
 }
 
-export interface Schedule {
+interface Schedule {
     [userName: string]: { [date: string]: string };
 } 
 
-export interface DayOfWeek {
+interface DayOfWeek {
     id?: number;
     dayName: string;
     weekId: number | null;
     isHandWeek: boolean;
 }
+
+export { ShiftTypeEnum, ShiftType, Shift, Schedule, DayOfWeek }

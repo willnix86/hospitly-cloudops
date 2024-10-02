@@ -1,4 +1,4 @@
-import { Schedule, User } from '../../models';
+import { Schedule, User, ShiftTypeEnum } from '../../models';
 
 const createOnCallTable = (schedule: Schedule, users: User[], month: number, year: number): string => {
     const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the given month
@@ -19,13 +19,13 @@ const createOnCallTable = (schedule: Schedule, users: User[], month: number, yea
 
         // Find junior and senior residents on call for this day
         juniorResidents.forEach(user => {
-            if (schedule[user.name] && schedule[user.name][date] === 'On-Call') {
+            if (schedule[user.name] && schedule[user.name][date] === ShiftTypeEnum.OnCall) {
                 juniorOnCall = user.name;
             }
         });
 
         seniorResidents.forEach(user => {
-            if (schedule[user.name] && schedule[user.name][date] === 'On-Call') {
+            if (schedule[user.name] && schedule[user.name][date] === ShiftTypeEnum.OnCall) {
                 seniorOnCall = user.name;
             }
         });
