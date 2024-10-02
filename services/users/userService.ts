@@ -1,5 +1,5 @@
-import { getTenantDb } from '../db/db';
-import { User } from '../models';
+import { getTenantDb } from '../../db/db';
+import { User } from '../../models';
 import { Pool, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 export const addUserToTenant = async (hospitalName: string, user: User): Promise<void> => {

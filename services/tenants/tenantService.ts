@@ -1,5 +1,5 @@
-import { createAccount, deleteAccount } from '../db/accountSchema';
-import { createTenantSchema, deleteTenantSchema } from '../db/tenantSchema';
+import { createAccount, deleteAccount } from '../../db/accountSchema';
+import { createTenantSchema, deleteTenantSchema } from '../../db/tenantSchema';
 import mysql from 'mysql2/promise';
 
 export const createNewTenant = async (
