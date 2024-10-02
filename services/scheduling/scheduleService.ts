@@ -1,6 +1,7 @@
 import { getTenantDb } from '../../db/db';
 import fetchSchedulingData from './functions/fetchSchedulingData';
 import generateCallSchedule from './functions/generateCallSchedule';
+import populateSchedule from './functions/populateRemainingSchedule';
 
 import { Schedule, Department } from '../../models';
 
@@ -25,7 +26,8 @@ export const generateSchedule = async (
   // TODO: fetch previous month schedule from db
   const { users, vacations, adminDays, rules } = await fetchSchedulingData(tenantDb, month, year, department);
 
-  let schedule = generateCallSchedule(users, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
+  let callSchedule = generateCallSchedule(users, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
+  let finalSchedule = populateSchedule(callSchedule, users, daysInMonth, year, month)
 
-  return schedule;
+  return finalSchedule;
 };

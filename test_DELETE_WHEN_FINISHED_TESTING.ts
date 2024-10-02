@@ -21,14 +21,12 @@ const main = async (hospitalName: string) => {
 
         // generate a schedule for the tenant
         const octoberSchedule = await generateSchedule(hospitalName, 10, 2024, plastics);
-        const octoberTable = createOnCallTable(octoberSchedule, users, 10, 2024);
-        console.log(octoberTable);
+        // console.log(octoberSchedule);
 
         // console.log('October schedule generated:', octoberSchedule);
 
         const novemberSchedule = await generateSchedule(hospitalName, 11, 2024, plastics, octoberSchedule);
-        const novemberTable = createOnCallTable(novemberSchedule, users, 11, 2024);
-        console.log(novemberTable);
+        // console.log(novemberSchedule);
 
         // console.log('November schedule generated:', novemberSchedule);
 

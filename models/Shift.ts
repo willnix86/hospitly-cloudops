@@ -3,8 +3,9 @@ import { User } from './User';
 enum ShiftTypeEnum {
     OnCall = 'On-Call',
     Vacation = 'Off (Vacation)',
-    Admin = 'Off (Admin)',
+    Admin = 'Off (Admin Day)',
     Rest = 'Off (Rest)',
+    Weekend = 'Off (Weekend)',
     Available = ''
 }
 
