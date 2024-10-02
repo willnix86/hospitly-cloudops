@@ -26,7 +26,7 @@ export const createNewTenant = async (
     await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbName}`);
     await connection.end();
 
-    await createTenantSchema(dbName);
+    await createTenantSchema(hospitalName);
 
     return accountId;
   } catch (error) {

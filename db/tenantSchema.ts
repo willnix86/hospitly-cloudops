@@ -95,7 +95,7 @@ export const createTenantSchema = async (hospitalName: string): Promise<void> =>
                 StartTime TIME NOT NULL,
                 EndTime TIME NOT NULL,
                 FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE,
-                FOREIGN KEY (DayID) REFERENCES DaysOfWeek(ID) ON DELETE CASCADE,
+                FOREIGN KEY (DayID) REFERENCES DayOfWeek(ID) ON DELETE CASCADE,
                 FOREIGN KEY (ShiftTypeID) REFERENCES ShiftTypes(ID) ON DELETE SET NULL
             );
 
