@@ -60,43 +60,27 @@ export const createTenantSchema = async (hospitalName: string): Promise<void> =>
                 FOREIGN KEY (DepartmentID) REFERENCES Departments(ID) ON DELETE SET NULL
             );
 
-            -- Create Months table
-            CREATE TABLE IF NOT EXISTS Months (
+            -- Create Schedules table
+            CREATE TABLE IF NOT EXISTS Schedules (
                 ID INT AUTO_INCREMENT PRIMARY KEY,
-                MonthName VARCHAR(20) NOT NULL,
-                isFaceMonth BOOLEAN DEFAULT FALSE
-            );
-
-            -- Create Weeks table
-            CREATE TABLE IF NOT EXISTS Weeks (
-                ID INT AUTO_INCREMENT PRIMARY KEY,
-                WeekNumber INT NOT NULL,
-                MonthID INT,
-                isHandWeek BOOLEAN DEFAULT FALSE,
-                FOREIGN KEY (MonthID) REFERENCES Months(ID) ON DELETE CASCADE
-            );
-
-            -- Create DaysOfWeek table
-            CREATE TABLE IF NOT EXISTS DayOfWeek (
-                ID INT AUTO_INCREMENT PRIMARY KEY,
-                DayName VARCHAR(20) NOT NULL,
-                WeekID INT,
-                isFaceMonth BOOLEAN DEFAULT FALSE,
-                isHandWeek BOOLEAN DEFAULT FALSE,
-                FOREIGN KEY (WeekID) REFERENCES Weeks(ID) ON DELETE CASCADE
+                DepartmentID INT,  -- Department to which the schedule applies
+                StartDate DATE,  -- Start of the schedule period (e.g., first of the month)
+                EndDate DATE,  -- End of the schedule period (e.g., end of the month)
+                FOREIGN KEY (DepartmentID) REFERENCES Departments(ID) ON DELETE CASCADE
             );
 
             -- Create Shifts table
             CREATE TABLE IF NOT EXISTS Shifts (
                 ID INT AUTO_INCREMENT PRIMARY KEY,
                 UserID INT,
-                DayID INT,
                 ShiftTypeID INT,
-                StartTime TIME NOT NULL,
-                EndTime TIME NOT NULL,
+                Date DATE,              -- The specific day the shift happens
+                StartTime TIME,
+                EndTime TIME,
+                ScheduleID INT,         -- Optional, points to a Schedule
                 FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE,
-                FOREIGN KEY (DayID) REFERENCES DayOfWeek(ID) ON DELETE CASCADE,
-                FOREIGN KEY (ShiftTypeID) REFERENCES ShiftTypes(ID) ON DELETE SET NULL
+                FOREIGN KEY (ShiftTypeID) REFERENCES ShiftTypes(ID) ON DELETE CASCADE,
+                FOREIGN KEY (ScheduleID) REFERENCES Schedules(ID) ON DELETE CASCADE
             );
 
             -- Create Requests table
