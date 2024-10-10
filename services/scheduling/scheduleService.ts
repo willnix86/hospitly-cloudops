@@ -4,6 +4,7 @@ import generateCallSchedule from './functions/generateCallSchedule';
 import populateSchedule from './functions/populateRemainingSchedule';
 
 import { Schedule, Department } from '../../models';
+import { createOnCallTable } from '../../testing/helpers/createOnCallTable';
 
 const getDaysInMonth = (
   month: number, 
@@ -18,7 +19,7 @@ export const generateSchedule = async (
   year: number,
   department: Department,
   previousMonthSchedule: Schedule | null = null
-): Promise<{[userName: string]: { [date: string]: string }}> => {
+): Promise<Schedule> => {
   const tenantDb = await getTenantDb(tenantDbName);
   
   const daysInMonth = getDaysInMonth(month, year);
@@ -28,6 +29,10 @@ export const generateSchedule = async (
 
   let callSchedule = generateCallSchedule(users, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
   let finalSchedule = populateSchedule(callSchedule, users, daysInMonth, year, month)
+
+  // TODO: DELETE THIS
+  let table = createOnCallTable(finalSchedule, users, month, year)
+  console.log(table)
 
   return finalSchedule;
 };

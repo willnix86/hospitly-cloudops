@@ -1,4 +1,5 @@
-import { Schedule, User, ShiftTypeEnum } from '../../models';
+import { Schedule, User, ShiftTypeEnum, Shift } from '../../models';
+import { format } from 'date-fns';
 
 const createOnCallTable = (schedule: Schedule, users: User[], month: number, year: number): string => {
     const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the given month
@@ -12,20 +13,28 @@ const createOnCallTable = (schedule: Schedule, users: User[], month: number, yea
     table += `|----------|-------------------------|-------------------------|\n`;
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month - 1, day).toISOString().split('T')[0]; // Generate date string
+        const date = format(new Date(year, month - 1, day), 'yyyy-MM-dd'); // Generate date string
         
         let juniorOnCall: string | null = null;
         let seniorOnCall: string | null = null;
 
         // Find junior and senior residents on call for this day
         juniorResidents.forEach(user => {
-            if (schedule[user.name] && schedule[user.name][date] === ShiftTypeEnum.OnCall) {
+            const userSchedule = schedule[user.name];
+            const onCallShift = userSchedule.shifts.find(shift => 
+                shift.date === date && shift.shiftType.name === ShiftTypeEnum.OnCall
+            );
+            if (onCallShift) {
                 juniorOnCall = user.name;
             }
         });
 
         seniorResidents.forEach(user => {
-            if (schedule[user.name] && schedule[user.name][date] === ShiftTypeEnum.OnCall) {
+            const userSchedule = schedule[user.name];
+            const onCallShift = userSchedule.shifts.find(shift => 
+                shift.date === date && shift.shiftType.name === ShiftTypeEnum.OnCall
+            );
+            if (onCallShift) {
                 seniorOnCall = user.name;
             }
         });

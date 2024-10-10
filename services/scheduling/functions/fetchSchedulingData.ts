@@ -20,6 +20,7 @@ const fetchSchedulingData = async (
   }));
 
   const [userRows] = await tenantDb.query<RowDataPacket[]>('SELECT * FROM Users WHERE DepartmentID = ?', [department.id]);
+
   const users: User[] = userRows.map((user: RowDataPacket) => {
     const position = positions.find(position => position.id == user.PositionID);
     const isCorrectDepartment = user.DepartmentID == department.id;
