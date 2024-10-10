@@ -9,7 +9,7 @@ enum ShiftTypeEnum {
     Admin = 'Off (Admin Day)',
     Rest = 'Off (Rest)',
     Weekend = 'Off (Weekend)',
-    Available = ''  // When the user has no specific shift
+    Available = 'Available'  // When the user has no specific shift
 }
 
 interface ShiftTimes {
