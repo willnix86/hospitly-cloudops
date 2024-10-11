@@ -4,6 +4,15 @@ import { User, Rule, Department, Vacation, AdminDay, Schedule, ShiftTypeEnum, Sh
 import { getShiftTimes } from '../../../models/Shift';
 import createShift from './createShift';
 
+const seniorityWeights: {[index: string]: number} = {
+  PGY1: 1.0,  // Highest priority for more shifts
+  PGY2: 0.9,
+  PGY3: 0.8,
+  PGY4: 0.6,
+  PGY5: 0.5,
+  PGY6: 0.4   // Lowest priority for fewer shifts
+};
+
 const generateCallSchedule = (
   users: User[],
   department: Department, // add department as a parameter
@@ -111,20 +120,30 @@ const generateCallSchedule = (
   };
 
   // Function to prioritize users based on the number of shifts they have worked in the current month and the previous month
-  const prioritizeUsersByShiftCountAndPreviousMonth = (users: User[], schedule: Schedule, previousMonthSchedule: Schedule | null): User[] => {
+  const prioritizeUsersByShiftCountAndPreviousMonth = (
+    users: User[], 
+    schedule: Schedule, 
+    previousMonthSchedule: Schedule | null
+  ): User[] => {
     return users.sort((a, b) => {
       const aShiftsCurrentMonth = schedule[a.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length;
       const bShiftsCurrentMonth = schedule[b.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length;
-
+  
       const aShiftsPreviousMonth = previousMonthSchedule
         ? previousMonthSchedule[a.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length
         : 0;
       const bShiftsPreviousMonth = previousMonthSchedule
         ? previousMonthSchedule[b.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length
         : 0;
-
-      // Sort primarily by total shifts in the current month, then by shifts in the previous month
-      return (aShiftsCurrentMonth - bShiftsCurrentMonth) || (aShiftsPreviousMonth - bShiftsPreviousMonth);
+  
+      const aSeniorityWeight = seniorityWeights[a.position.name] || 1.0;
+      const bSeniorityWeight = seniorityWeights[b.position.name] || 1.0;
+  
+      // Sort primarily by total shifts adjusted for seniority, then by previous month
+      return (
+        (aShiftsCurrentMonth * aSeniorityWeight - bShiftsCurrentMonth * bSeniorityWeight) ||
+        (aShiftsPreviousMonth * aSeniorityWeight - bShiftsPreviousMonth * bSeniorityWeight)
+      );
     });
   };
 
