@@ -131,6 +131,19 @@ export const createTenantSchema = async (hospitalName: string): Promise<void> =>
                 FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE
             );
 
+            -- Updated Rotations table
+            CREATE TABLE Rotations (
+                ID INT AUTO_INCREMENT PRIMARY KEY,
+                UserID INT NOT NULL,
+                DepartmentID INT NOT NULL,
+                StartDate DATE NOT NULL,
+                EndDate DATE NOT NULL,
+                PositionID INT NOT NULL,
+                FOREIGN KEY (UserID) REFERENCES Users(ID),
+                FOREIGN KEY (DepartmentID) REFERENCES Departments(ID),
+                FOREIGN KEY (PositionID) REFERENCES Positions(ID)
+            );
+
             -- Insert values into Positions table
             INSERT INTO Positions (Name)
             SELECT Name FROM hospitly_master_dev.Positions;

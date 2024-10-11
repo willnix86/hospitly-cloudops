@@ -13,7 +13,7 @@ const getDaysInMonth = (
   return new Date(year, month, 0).getDate();
 };
 
-export const generateSchedule = async (
+export const generateWorkSchedule = async (
   tenantDbName: string,
   month: number, 
   year: number,
@@ -27,7 +27,7 @@ export const generateSchedule = async (
   // TODO: fetch previous month schedule from db
   const { users, vacations, adminDays, rules } = await fetchSchedulingData(tenantDb, month, year, department);
 
-  let callSchedule = generateCallSchedule(users, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
+  let callSchedule = generateCallSchedule(users, department, rules, vacations, adminDays, daysInMonth, year, month, previousMonthSchedule);
   let finalSchedule = populateSchedule(callSchedule, users, daysInMonth, year, month)
 
   // TODO: DELETE THIS

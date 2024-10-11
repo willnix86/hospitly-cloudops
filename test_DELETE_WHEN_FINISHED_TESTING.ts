@@ -1,7 +1,7 @@
 // test/createTenantTest.ts
 import { getTenantDb } from './db/db';
 
-import { generateSchedule } from './services/scheduling/scheduleService';
+import { generateWorkSchedule } from './services/scheduling/scheduleService';
 import { createNewTenant } from './services/tenants/tenantService';
 import { Department } from './models';
 import { departments, users } from './testing/mocks/UserMocks';
@@ -21,10 +21,10 @@ const main = async (hospitalName: string) => {
         // console.log('All users added successfully.');
 
         // generate a schedule for the tenant
-        const octoberSchedule = await generateSchedule(hospitalName, 10, 2024, plastics);
+        const octoberSchedule = await generateWorkSchedule(hospitalName, 10, 2024, plastics);
         // console.log(octoberSchedule);
 
-        const novemberSchedule = await generateSchedule(hospitalName, 11, 2024, plastics, octoberSchedule);
+        const novemberSchedule = await generateWorkSchedule(hospitalName, 11, 2024, plastics, octoberSchedule);
         // console.log(novemberSchedule);
 
     } catch (error) {

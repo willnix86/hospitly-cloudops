@@ -19,19 +19,27 @@ const fetchSchedulingData = async (
     name: position.Name
   }));
 
-  const [userRows] = await tenantDb.query<RowDataPacket[]>('SELECT * FROM Users WHERE DepartmentID = ?', [department.id]);
+  // Updated user query to include users assigned to the department via Users table or Rotations table
+  const [userRows] = await tenantDb.query<RowDataPacket[]>(
+    `
+    SELECT DISTINCT Users.*
+    FROM Users
+    LEFT JOIN Rotations ON Users.ID = Rotations.UserID
+    WHERE Users.DepartmentID = ? 
+      OR (Rotations.DepartmentID = ? 
+          AND MONTH(Rotations.StartDate) <= ? 
+          AND MONTH(Rotations.EndDate) >= ? 
+          AND YEAR(Rotations.StartDate) <= ? 
+          AND YEAR(Rotations.EndDate) >= ?)
+    `,
+    [department.id, department.id, month, month, year, year]
+  );
 
   const users: User[] = userRows.map((user: RowDataPacket) => {
     const position = positions.find(position => position.id == user.PositionID);
-    const isCorrectDepartment = user.DepartmentID == department.id;
 
     if (!position) { 
       // TODO: Track error - we should have a position
-      return null;
-    }
-
-    if (!isCorrectDepartment) {
-      // TODO: Track error - we should have correct dept
       return null;
     }
 
@@ -44,18 +52,19 @@ const fetchSchedulingData = async (
     } as User;
   }).filter((user): user is User => user != null);
 
-  // Updated SQL query for vacations with startDate and endDate
+  // Updated SQL query for vacations with user IDs from the updated user list
+  const userIds = users.map(user => user.id);
   const [vacationRows] = await tenantDb.query<RowDataPacket[]>(
     `
     SELECT * FROM Vacations 
-    WHERE UserID IN (SELECT ID FROM Users WHERE DepartmentID = ?)
+    WHERE UserID IN (?)
     AND (
-      (MONTH(StartDate) = ? AND YEAR(StartDate) = ?)  -- Vacation starts in this month
-      OR (MONTH(EndDate) = ? AND YEAR(EndDate) = ?)  -- Vacation ends in this month
-      OR (StartDate <= LAST_DAY(DATE(CONCAT(?, '-', ?, '-01'))) AND EndDate >= DATE(CONCAT(?, '-', ?, '-01')))  -- Overlaps with this month
+      (MONTH(StartDate) = ? AND YEAR(StartDate) = ?)
+      OR (MONTH(EndDate) = ? AND YEAR(EndDate) = ?)
+      OR (StartDate <= LAST_DAY(DATE(CONCAT(?, '-', ?, '-01'))) AND EndDate >= DATE(CONCAT(?, '-', ?, '-01')))
     )
     `,
-    [department.id, month, year, month, year, year, month, year, month]
+    [userIds, month, year, month, year, year, month, year, month]
   );
   
   const vacations: Vacation[] = vacationRows.map((vacation: RowDataPacket) => {
@@ -73,9 +82,10 @@ const fetchSchedulingData = async (
     }
   }).filter((vacation): vacation is Vacation => vacation != null);
 
+  // Update admin day query to reference the filtered list of users based on both Users and Rotations assignments
   const [adminDaysRows] = await tenantDb.query<RowDataPacket[]>(
-    'SELECT * FROM AdminDays WHERE UserID IN (SELECT ID FROM Users WHERE DepartmentID = ?) AND MONTH(AdminDate) = ? AND YEAR(AdminDate) = ?',
-    [department.id, month, year]
+    'SELECT * FROM AdminDays WHERE UserID IN (?) AND MONTH(AdminDate) = ? AND YEAR(AdminDate) = ?',
+    [userIds, month, year]
   );
   const adminDays: AdminDay[] = adminDaysRows.map((adminDay: RowDataPacket) => {
     const user = users.find(user => user.id == adminDay.UserID);
