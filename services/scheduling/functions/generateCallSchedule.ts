@@ -1,7 +1,6 @@
 import { format, eachDayOfInterval } from 'date-fns'; // Importing date-fns to help with date handling
 
-import { User, Rule, Department, Vacation, AdminDay, Schedule, ShiftTypeEnum, Shift } from '../../../models';
-import { getShiftTimes } from '../../../models/Shift';
+import { User, Department, ScheduleData, Schedule, ShiftTypeEnum, Shift } from '../../../models';
 import createShift from './createShift';
 
 const seniorityWeights: {[index: string]: number} = {
@@ -14,20 +13,19 @@ const seniorityWeights: {[index: string]: number} = {
 };
 
 const generateCallSchedule = (
-  users: User[],
+  scheduleData: ScheduleData,
   department: Department, // add department as a parameter
-  rules: Rule[],
-  vacations: Vacation[],
-  adminDays: AdminDay[],
   daysInMonth: number,
   year: number,
   month: number,
   previousMonthSchedule: Schedule | null = null // optional parameter for previous month schedule,
 ): Schedule => {
-  const callShift = { name: ShiftTypeEnum.OnCall, ...getShiftTimes(ShiftTypeEnum.OnCall) };
-  const vacationShift = { name: ShiftTypeEnum.Vacation, ...getShiftTimes(ShiftTypeEnum.Vacation) };
-  const adminShift = { name: ShiftTypeEnum.Admin, ...getShiftTimes(ShiftTypeEnum.Admin) };
-  const restShift = { name: ShiftTypeEnum.Rest, ...getShiftTimes(ShiftTypeEnum.Rest) };
+  const { rules, users, vacations, adminDays, shiftTypes } = scheduleData;
+
+  const callShift = shiftTypes.find(s => s.name === ShiftTypeEnum.OnCall)!;
+  const vacationShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Vacation)!;
+  const adminShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Admin)!;
+  const restShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Rest)!;
 
   const maxWorkHoursRule = rules.find(rule => rule.name === 'Max Work Hours')?.value || 80;
 
@@ -45,6 +43,40 @@ const generateCallSchedule = (
   users.forEach(user => {
     schedule[user.name] = { shifts: [] };
   });
+
+  const bootstrapSchedule = (users: User[], daysInMonth: number): Schedule => {
+    const schedule: Schedule = {};
+    users.forEach(user => {
+      schedule[user.name] = { shifts: [] };
+    });
+  
+    let day = 1;
+    while (day <= daysInMonth) {
+      // Sort users by seniority weight for round-robin distribution
+      const sortedUsers = users.sort((a, b) => {
+        const aWeight = seniorityWeights[a.position.name] || 1.0;
+        const bWeight = seniorityWeights[b.position.name] || 1.0;
+        return aWeight - bWeight; // Lower weight (more junior) first
+      });
+  
+      // Round-robin distribution
+      sortedUsers.forEach(user => {
+        const date = new Date(year, month - 1, day).toISOString().split('T')[0];
+        const userShifts = schedule[user.name].shifts;
+        const totalOnCallShifts = userShifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length;
+  
+        // Ensure they don't exceed the work hour limit and no consecutive shifts
+        if (totalOnCallShifts * 24 < maxWorkHoursRule && !isConsecutiveShift(user, day)) {
+          userShifts.push(createShift(user, date, callShift));
+        }
+  
+        day++;
+        if (day > daysInMonth) return schedule;
+      });
+    }
+  
+    return schedule;
+  };
 
   const markDaysOff = (user: User, schedule: Schedule) => {
     const userSchedule = schedule[user.name];
@@ -316,12 +348,6 @@ const generateCallSchedule = (
       (currentShift?.shiftType.name === ShiftTypeEnum.OnCall && nextShift?.shiftType.name === ShiftTypeEnum.OnCall)
     );
   };
-  
-  // Run the rebalancing process
-  rebalanceShifts();
-  
-  // Run the rebalancing process
-  rebalanceShifts();
 
   const sortShiftsByDate = () => {
     users.forEach(user => {
@@ -331,6 +357,18 @@ const generateCallSchedule = (
       });
     });
   };
+
+  // Bootstrapping if no previous schedule exists
+  if (!previousMonthSchedule) {
+    console.log("Bootstrapping initial schedule for the first month");
+    previousMonthSchedule = bootstrapSchedule(users, daysInMonth);
+  }
+  
+  // Run the rebalancing process
+  rebalanceShifts();
+  
+  // Run the rebalancing process
+  rebalanceShifts();
 
   users.forEach(user => {
     markDaysOff(user, schedule);

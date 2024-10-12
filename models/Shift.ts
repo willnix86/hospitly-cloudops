@@ -1,4 +1,6 @@
 import { User } from './User';
+import { Rule } from './Rule';
+import { Vacation, AdminDay } from './Vacations';
 
 // Enum representing the different types of shifts (On-Call, Vacation, etc.)
 enum ShiftTypeEnum {
@@ -15,22 +17,6 @@ enum ShiftTypeEnum {
 interface ShiftTimes {
     startTime: string;
     endTime: string;
-}
-
-const shiftTypeTimes: Record<ShiftTypeEnum, ShiftTimes> = {
-    [ShiftTypeEnum.DayShift]: { startTime: '06:00', endTime: '18:00' },
-    [ShiftTypeEnum.NightShift]: { startTime: '18:00', endTime: '06:00' },
-    [ShiftTypeEnum.OnCall]: { startTime: '06:00', endTime: '06:00' },  // 24-hour shift
-    [ShiftTypeEnum.Vacation]: { startTime: '', endTime: '' },
-    [ShiftTypeEnum.Admin]: { startTime: '', endTime: '' },
-    [ShiftTypeEnum.Rest]: { startTime: '', endTime: '' },
-    [ShiftTypeEnum.Weekend]: { startTime: '', endTime: '' },
-    [ShiftTypeEnum.Available]: { startTime: '', endTime: '' },
-};
-
-// Function to get shift times
-function getShiftTimes(shiftType: ShiftTypeEnum): ShiftTimes {
-    return shiftTypeTimes[shiftType];
 }
 
 // Interface representing a ShiftType, matching the ShiftTypes table in the DB.
@@ -59,4 +45,12 @@ interface Schedule {
     };
 }
 
-export { ShiftTypeEnum, ShiftType, Shift, Schedule, getShiftTimes };
+interface ScheduleData { 
+    users: User[], 
+    vacations: Vacation[], 
+    adminDays: AdminDay[], 
+    rules: Rule[], 
+    shiftTypes: ShiftType[]
+}
+
+export { ShiftTypeEnum, ShiftType, Shift, Schedule, ScheduleData };

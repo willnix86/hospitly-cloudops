@@ -1,18 +1,12 @@
 import { Pool, RowDataPacket } from 'mysql2/promise';
-import { User, Vacation, AdminDay, Rule, Department, Position, ShiftType } from '../../../models';
+import { User, Vacation, AdminDay, Rule, Department, Position, ShiftType, ScheduleData } from '../../../models';
 
 const fetchSchedulingData = async (
   tenantDb: Pool, 
   month: number, 
   year: number,
   department: Department
-) : Promise<{
-  users: User[], 
-  vacations: Vacation[], 
-  adminDays: AdminDay[], 
-  rules: Rule[], 
-  shiftTypes: ShiftType[]
-}> => {
+) : Promise<ScheduleData> => {
   const [positionRows] = await tenantDb.query<RowDataPacket[]>('SELECT * FROM Positions');
   const positions: Position[] = positionRows.map((position: RowDataPacket) => ({
     id: position.ID,

@@ -1,17 +1,18 @@
 import { format, isWeekend } from 'date-fns';
-import { Schedule, User, ShiftTypeEnum, ShiftType } from '../../../models'; // Assuming you have a User and Schedule model already defined
+import { Schedule, ShiftTypeEnum, ScheduleData } from '../../../models'; // Assuming you have a User and Schedule model already defined
 import createShift from './createShift';
-import { getShiftTimes } from '../../../models/Shift';
 
 const populateSchedule = (
   schedule: Schedule, 
-  users: User[], 
+  scheduleData: ScheduleData, 
   daysInMonth: number, 
   year: number, 
   month: number
 ): Schedule => {
-  const weekendShift = { name: ShiftTypeEnum.Weekend, ...getShiftTimes(ShiftTypeEnum.Weekend) };
-  const availableShift = { name: ShiftTypeEnum.Available, ...getShiftTimes(ShiftTypeEnum.Available) };
+  const { users, shiftTypes } = scheduleData;
+
+  const weekendShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Weekend)!;
+  const availableShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Available)!;
 
   // Iterate through each user in the schedule
   users.forEach(user => {
