@@ -1,4 +1,4 @@
-import { Schedule, User, ShiftTypeEnum, Shift } from '../../models';
+import { Schedule, User, ShiftTypeEnum, Shift } from '../../src/models';
 import { format } from 'date-fns';
 
 const createOnCallTable = (schedule: Schedule, users: User[], month: number, year: number): string => {

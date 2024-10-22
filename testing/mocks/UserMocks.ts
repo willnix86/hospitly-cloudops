@@ -1,4 +1,4 @@
-import { User, Position, Department } from "../../models";
+import { User, Position, Department } from '../../src/models';
 
 const positions: Position[] = [
   { id: 16, name: 'PGY5' },

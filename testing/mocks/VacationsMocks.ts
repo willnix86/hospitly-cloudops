@@ -1,4 +1,4 @@
-import { Vacation } from "../../models";
+import { Vacation } from '../../src/models';
 import { users } from "./UserMocks";
 
 const vacations: Vacation[] = [

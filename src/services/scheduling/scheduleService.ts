@@ -4,7 +4,7 @@ import generateCallSchedule from './functions/generateCallSchedule';
 import populateSchedule from './functions/populateRemainingSchedule';
 
 import { Schedule, Department, User } from '../../models';
-import { createOnCallTable } from '../../testing/helpers/createOnCallTable';
+import { createOnCallTable } from '../../../testing/helpers/createOnCallTable';
 
 const getDaysInMonth = (month: number, year: number): number => {
   return new Date(year, month, 0).getDate();
@@ -19,7 +19,6 @@ const saveScheduleToDb = async (
   department: Department,
   users: User[]
 ): Promise<void> => {
-  // Assuming there's a table named "Shifts" to store shift data
   const shiftTableName = 'Shifts';
   const schedulesTableName = 'Schedules';
 
@@ -97,9 +96,9 @@ export const generateWorkSchedule = async (
   // Save the generated schedule to the database
   await saveScheduleToDb(tenantDb, finalSchedule, month, year, department, scheduleData.users);
 
-  // Optional: display the schedule in the console for debugging
-  let table = createOnCallTable(finalSchedule, scheduleData.users, month, year);
-  console.log(table);
+  // // Optional: display the schedule in the console for debugging
+  // let table = createOnCallTable(finalSchedule, scheduleData.users, month, year);
+  // console.log(table);
 
   return finalSchedule;
 };
