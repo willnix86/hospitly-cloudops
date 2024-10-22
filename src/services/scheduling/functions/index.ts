@@ -1,3 +1,3 @@
-import { generateCallSchedule } from "./generateCallSchedule";
+import generateCallSchedule from "./generateCallSchedule";
 
 export default { generateCallSchedule }
