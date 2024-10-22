@@ -1,4 +1,4 @@
-import AWS from 'aws-sdk';
+import { Lambda } from '@aws-sdk/client-lambda';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -6,14 +6,13 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Configure AWS SDK
-AWS.config.update({
+const lambda = new Lambda({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+  },
 });
-
-const lambda = new AWS.Lambda();
 
 const functions = ['userService', 'tenantService', 'schedulingService'];
 
@@ -33,7 +32,7 @@ async function deployLambda(functionName: string) {
   };
 
   try {
-    await lambda.updateFunctionCode(params).promise();
+    await lambda.updateFunctionCode(params);
     console.log(`Successfully deployed ${functionName}`);
   } catch (error) {
     console.error(`Error deploying ${functionName}:`, error);
