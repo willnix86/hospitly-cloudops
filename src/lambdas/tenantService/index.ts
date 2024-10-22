@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { createNewTenant, deleteTenant } from '../services/tenants/tenantService';
+import { createNewTenant, deleteTenant } from '../../services/tenants/tenantService';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
