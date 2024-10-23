@@ -93,3 +93,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# AWS SAM CLI temporary files
+.sam-local/

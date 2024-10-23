@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Hospitly CloudOps Lambda Functions
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        AWS_REGION: !Ref AWS::Region
+        LAMBDA_EXECUTION_ROLE: !GetAtt LambdaExecutionRole.Arn
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - POST
+          - DELETE
+        AllowHeaders:
+          - '*'
+        AllowOrigins:
+          - '*'
+
+  SchedulingServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambdas/schedulingService/
+      Handler: index.handler
+      Events:
+        GenerateSchedule:
+          Type: HttpApi
+          Properties:
+            Path: /scheduling/generateSchedule
+            Method: POST
+            ApiId: !Ref HttpApi
+        GetSchedule:
+          Type: HttpApi
+          Properties:
+            Path: /scheduling/getSchedule
+            Method: GET
+            ApiId: !Ref HttpApi
+
+  TenantServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambdas/tenantService/
+      Handler: index.handler
+      Events:
+        CreateTenant:
+          Type: HttpApi
+          Properties:
+            Path: /tenant/createTenant
+            Method: POST
+            ApiId: !Ref HttpApi
+        DeleteTenant:
+          Type: HttpApi
+          Properties:
+            Path: /tenant/deleteTenant
+            Method: DELETE
+            ApiId: !Ref HttpApi
+
+  UserServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambdas/userService/
+      Handler: index.handler
+      Events:
+        AddUsers:
+          Type: HttpApi
+          Properties:
+            Path: /user/addUsers
+            Method: POST
+            ApiId: !Ref HttpApi
+        AddUser:
+          Type: HttpApi
+          Properties:
+            Path: /user/addUser
+            Method: POST
+            ApiId: !Ref HttpApi
+        DeleteUser:
+          Type: HttpApi
+          Properties:
+            Path: /user/deleteUser
+            Method: DELETE
+            ApiId: !Ref HttpApi
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+Outputs:
+  HttpApiUrl:
+    Description: URL of your HTTP API
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
