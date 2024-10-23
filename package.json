@@ -8,6 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.675.0",
+    "@aws-sdk/client-secrets-manager": "^3.675.0",
     "@types/dotenv": "^8.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
