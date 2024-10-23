@@ -1,7 +1,8 @@
-import { Lambda } from '@aws-sdk/client-lambda';
+import { Lambda, CreateFunctionCommandInput, UpdateFunctionCodeCommandInput } from '@aws-sdk/client-lambda';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import JSZip from 'jszip';
 
 // Load environment variables
 dotenv.config();
@@ -17,25 +18,48 @@ const lambda = new Lambda({
 const functions = ['userService', 'tenantService', 'schedulingService'];
 
 async function deployLambda(functionName: string) {
-  const zipFilePath = path.join(__dirname, `dist/${functionName}/index.js`);
+  const jsFilePath = path.join(__dirname, `dist/${functionName}/index.js`);
   
-  if (!fs.existsSync(zipFilePath)) {
-    console.error(`File not found: ${zipFilePath}`);
+  if (!fs.existsSync(jsFilePath)) {
+    console.error(`File not found: ${jsFilePath}`);
     return;
   }
 
-  const zipFile = fs.readFileSync(zipFilePath);
+  // Create a new zip file
+  const zip = new JSZip();
+  zip.file('index.js', fs.readFileSync(jsFilePath));
+  const zipBuffer = await zip.generateAsync({type: 'nodebuffer'});
 
-  const params = {
-    FunctionName: `${process.env.STAGE}-${functionName}`,
-    ZipFile: zipFile,
-  };
+  const fullFunctionName = `${process.env.STAGE}-${functionName}`;
 
   try {
-    await lambda.updateFunctionCode(params);
-    console.log(`Successfully deployed ${functionName}`);
+    // Try to get the function
+    await lambda.getFunction({ FunctionName: fullFunctionName });
+
+    const updateParms: UpdateFunctionCodeCommandInput = {
+      FunctionName: fullFunctionName,
+      ZipFile: zipBuffer,
+    };
+    
+    // If the function exists, update its code
+    await lambda.updateFunctionCode(updateParms);
+    console.log(`Successfully updated ${fullFunctionName}`);
   } catch (error) {
-    console.error(`Error deploying ${functionName}:`, error);
+    if (error instanceof Error && 'name' in error && error.name === 'ResourceNotFoundException') {
+      // If the function doesn't exist, create it
+      const createParams: CreateFunctionCommandInput = {
+        FunctionName: fullFunctionName,
+        Code: { ZipFile: zipBuffer },
+        Handler: 'index.handler',
+        Role: process.env.LAMBDA_EXECUTION_ROLE,
+        Runtime: 'nodejs20.x',
+      };
+
+      await lambda.createFunction(createParams);
+      console.log(`Successfully created ${fullFunctionName}`);
+    } else {
+      console.error(`Error deploying ${fullFunctionName}:`, error);
+    }
   }
 }
 

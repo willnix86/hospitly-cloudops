@@ -20,22 +20,22 @@ export const createNewTenant = async (
   let accountId: number | undefined;
 
   try {
-    const tenantDbPassword = Math.random().toString(36).slice(-8);
+    // const tenantDbPassword = Math.random().toString(36).slice(-8);
 
-    const secretName = `${formattedHospitalName}_credentials`;
-    const secretValue = JSON.stringify({
-      username: formattedHospitalName,
-      password: tenantDbPassword,
-      engine: "mysql",
-      host: dbHost,
-      port: 3306,
-      dbname: dbName
-    });
+    // const secretName = `${formattedHospitalName}_credentials`;
+    // const secretValue = JSON.stringify({
+    //   username: formattedHospitalName,
+    //   password: tenantDbPassword,
+    //   engine: "mysql",
+    //   host: dbHost,
+    //   port: 3306,
+    //   dbname: dbName
+    // });
 
-    await secretsManager.send(new CreateSecretCommand({
-      Name: secretName,
-      SecretString: secretValue
-    }));
+    // await secretsManager.send(new CreateSecretCommand({
+    //   Name: secretName,
+    //   SecretString: secretValue
+    // }));
 
     accountId = await createAccount(hospitalName, contactName, contactEmail, dbName, username, password);
 
@@ -46,9 +46,9 @@ export const createNewTenant = async (
     });
 
     await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbName}`);
-    await connection.query(`CREATE USER '${formattedHospitalName}'@'%' IDENTIFIED BY '${tenantDbPassword}'`);
-    await connection.query(`GRANT ALL PRIVILEGES ON ${dbName}.* TO '${dbName}'@'%'`);
-    await connection.query('FLUSH PRIVILEGES');
+    // await connection.query(`CREATE USER '${formattedHospitalName}'@'%' IDENTIFIED BY '${tenantDbPassword}'`);
+    // await connection.query(`GRANT ALL PRIVILEGES ON ${dbName}.* TO '${dbName}'@'%'`);
+    // await connection.query('FLUSH PRIVILEGES');
     await connection.end();
 
     await createTenantSchema(hospitalName);
@@ -70,13 +70,13 @@ export const deleteTenant = async (hospitalId: number, dbName: string): Promise<
   await deleteAccount(hospitalId);
   await deleteTenantSchema(dbName);
 
-  const hospitalName = dbName.replace('_tenant_db', '');
-  try {
-    await secretsManager.send(new DeleteSecretCommand({
-      SecretId: `${hospitalName}_credentials`,
-      ForceDeleteWithoutRecovery: true
-    }));
-  } catch (secretError) {
-    console.error(`Error deleting secret: ${(secretError as Error).message}`);
-  }
+  // const hospitalName = dbName.replace('_tenant_db', '');
+  // try {
+  //   await secretsManager.send(new DeleteSecretCommand({
+  //     SecretId: `${hospitalName}_credentials`,
+  //     ForceDeleteWithoutRecovery: true
+  //   }));
+  // } catch (secretError) {
+  //   console.error(`Error deleting secret: ${(secretError as Error).message}`);
+  // }
 };

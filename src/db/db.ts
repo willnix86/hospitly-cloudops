@@ -23,21 +23,20 @@ export const getTenantDb = async (hospitalName: string): Promise<Pool> => {
     const formattedHospitalName = hospitalName.toLowerCase().replace(/\s/g, '_')
 
     const dbName = `${formattedHospitalName}_tenant_db`;
-    const secretName = `${formattedHospitalName}_credentials`;
+    // const secretName = `${formattedHospitalName}_credentials`;
 
     try {
-        const secretResponse = await secretsManager.send(new GetSecretValueCommand({ SecretId: secretName }));
-        const secretString = secretResponse.SecretString;
-        if (!secretString) {
-            throw new Error('Secret string is empty');
-        }
-        const { username, password, host, port } = JSON.parse(secretString);
+        // const secretResponse = await secretsManager.send(new GetSecretValueCommand({ SecretId: secretName }));
+        // const secretString = secretResponse.SecretString;
+        // if (!secretString) {
+        //     throw new Error('Secret string is empty');
+        // }
+        // const { username, password, host, port } = JSON.parse(secretString);
 
         return mysql.createPool({
-            host,
-            port,
-            user: username,
-            password,
+            host: process.env.MASTER_DB_HOST,
+            user: process.env.TENANT_DB_USER,
+            password: process.env.TENANT_DB_PASSWORD,
             database: dbName,
             ssl: {
               rejectUnauthorized: true,
