@@ -29,6 +29,7 @@ const generateCallSchedule = (
 
   const maxWorkHoursRule = rules.find(rule => rule.name === 'Max Work Hours')?.value || 80;
 
+  // TODO: Make junior/senior distinction dynamic per tenant
   const juniorResidents = users.filter(user => { 
     return user.department != department ||
     ['PGY1', 'PGY2', 'PGY3'].includes(user.position.name)

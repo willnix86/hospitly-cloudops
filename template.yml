@@ -31,12 +31,6 @@ Resources:
       CodeUri: ./src/lambdas/schedulingService/
       Handler: index.handler
       Events:
-        GenerateSchedule:
-          Type: HttpApi
-          Properties:
-            Path: /scheduling/generateSchedule
-            Method: POST
-            ApiId: !Ref HttpApi
         GetSchedule:
           Type: HttpApi
           Properties:

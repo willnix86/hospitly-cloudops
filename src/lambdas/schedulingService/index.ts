@@ -1,36 +1,42 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { generateWorkSchedule } from '../../services/scheduling/scheduleService';
-import { Department } from '../../models';
+import { getUserSchedule } from '../../services/scheduling/scheduleService';
+
+function getPreviousMonth(month: number, year: number): { month: number, year: number } {
+    if (month === 1) {
+      return { month: 12, year: year - 1 };
+    } else {
+      return { month: month - 1, year };
+    }
+  }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
-    const { action, hospitalName } = event.queryStringParameters || {};
-    const body = JSON.parse(event.body || '{}');
+    const { action, userId, department, date, hospitalName } = JSON.parse(event.body || '{}');
 
+    const dateObject = new Date(date);
+    const month = dateObject.getMonth() + 1; // getMonth() returns 0-11, so we add 1
+    const year = dateObject.getFullYear();
+    const previousMonth = getPreviousMonth(month, year);
+    
     switch (action) {
-      case 'generateSchedule':
-        const { month, year, departmentId, departmentName, previousMonthSchedule } = body;
-        
-        const department: Department = { id: departmentId, name: departmentName };
-        
-        const schedule = await generateWorkSchedule(
-          hospitalName!,
-          month,
-          year,
-          department,
-          previousMonthSchedule || null
-        );
+        case 'getUserSchedule':
+            const schedule = await getUserSchedule(hospitalName, userId, month, year, department);
 
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ schedule })
-        };
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ schedule })
+            };
+        case 'getCallSchedule':
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ schedule })
+            };
 
-      default:
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ message: 'Invalid action' })
-        };
+        default:
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Invalid action' })
+            };
     }
   } catch (error) {
     console.error('Error in scheduling service:', error);
