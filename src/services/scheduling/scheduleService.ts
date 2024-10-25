@@ -1,4 +1,5 @@
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { format } from 'date-fns';
 
 import { getTenantDb } from '../../db/db';
 import fetchSchedulingData from './functions/fetchSchedulingData';
@@ -194,12 +195,19 @@ export const getUserSchedule = async (
   }
 };
 
-export const getCallSchedule = async (
+interface CallScheduleData {
+  month: string // 'YYYY-MM' format,
+  callShifts: Shift[], // includes user name
+  vacationDays: Shift[],
+  adminDays: Shift[]
+}
+
+export const getCallScheduleData = async (
   hospitalName: string,
   month: number,
   year: number,
   department: Department
-): Promise<Schedule> => {
+): Promise<CallScheduleData> => {
   const tenantDb = await getTenantDb(hospitalName);
 
   // Determine the start and end dates for the schedule
@@ -217,46 +225,59 @@ export const getCallSchedule = async (
     // CallSchedule exists, fetch and return it
     const existingSchedule = existingSchedules[0];
     const [shiftRows] = await tenantDb.query<RowDataPacket[]>(
-      `SELECT sh.*, u.Name as UserName, u.PositionID, u.isEditor, p.Name as PositionName, 
-              st.Name as ShiftTypeName, st.StartTime, st.EndTime
+      `SELECT sh.ID as shiftId, sh.Date, sh.StartTime, sh.EndTime,
+              u.ID as userId, u.Name as userName,
+              st.ID as shiftTypeId, st.Name as shiftTypeName
        FROM Shifts sh
        JOIN Users u ON sh.UserID = u.ID
-       JOIN Positions p ON u.PositionID = p.ID
        JOIN ShiftTypes st ON sh.ShiftTypeID = st.ID
        WHERE sh.ScheduleID = ?`,
       [existingSchedule.ID]
     );
+    
+    const shifts: Shift[] = shiftRows.map(row => ({
+      id: row.shiftId,
+      user: {
+        id: row.userId,
+        name: row.userName,
+        // Add other user properties if needed
+      },
+      date: row.Date,
+      shiftType: {
+        id: row.shiftTypeId,
+        name: row.shiftTypeName,
+        startTime: row.StartTime,
+        endTime: row.EndTime,
+      },
+      startTime: row.StartTime,
+      endTime: row.EndTime,
+    }));
 
     // Convert the database rows to a Schedule object
-    const schedule: Schedule = {};
-    shiftRows.forEach(shift => {
-      if (!schedule[shift.UserName]) {
-        schedule[shift.UserName] = { shifts: [] };
+    const callShifts: Shift[] = [];
+    const vacationDays: Shift[] = [];
+    const adminDays: Shift[] = [];
+
+    shifts.forEach(shift => {
+      switch (shift.shiftType.name) {
+        case ShiftTypeEnum.OnCall:
+          callShifts.push(shift);
+          break;
+        case ShiftTypeEnum.Vacation:
+          vacationDays.push(shift);
+          break;
+        case ShiftTypeEnum.Admin:
+          adminDays.push(shift);
+          break;
       }
-      schedule[shift.UserName].shifts.push({
-        user: {
-          id: shift.UserID,
-          name: shift.UserName,
-          position: {
-            id: shift.PositionID,
-            name: shift.PositionName
-          },
-          department: department,
-          isEditor: shift.isEditor
-        },
-        date: shift.Date,
-        shiftType: {
-          id: shift.ShiftTypeID,
-          name: shift.ShiftTypeName,
-          startTime: shift.StartTime,
-          endTime: shift.EndTime
-        },
-        startTime: shift.StartTime,
-        endTime: shift.EndTime
-      });
     });
 
-    return schedule;
+    return {
+      month: format(startDate, 'YYYY-MM'),
+      callShifts,
+      vacationDays,
+      adminDays
+    };
   } else {
     // CallSchedule doesn't exist, generate a new one
     const daysInMonth = new Date(year, month, 0).getDate();

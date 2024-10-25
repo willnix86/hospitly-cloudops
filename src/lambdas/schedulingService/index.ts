@@ -26,7 +26,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 statusCode: 200,
                 body: JSON.stringify({ schedule })
             };
-        case 'getCallSchedule':
+        case 'getCallScheduleData':
             return {
                 statusCode: 200,
                 body: JSON.stringify({ schedule })
