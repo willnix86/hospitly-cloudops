@@ -207,7 +207,7 @@ export const getCallScheduleData = async (
   month: number,
   year: number,
   department: Department
-): Promise<CallScheduleData> => {
+): Promise<CallScheduleData | undefined> => {
   const tenantDb = await getTenantDb(hospitalName);
 
   // Determine the start and end dates for the schedule
@@ -240,7 +240,12 @@ export const getCallScheduleData = async (
       user: {
         id: row.userId,
         name: row.userName,
-        // Add other user properties if needed
+        position: {
+          id: row.positionId,
+          name: row.positionName,
+        },
+        department: department, // We already have the department from the function parameters
+        isEditor: row.isEditor,
       },
       date: row.Date,
       shiftType: {
@@ -311,6 +316,6 @@ export const getCallScheduleData = async (
     //   }
     // }
 
-    return newCallSchedule;
+    return;
   }
 };
