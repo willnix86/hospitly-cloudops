@@ -100,3 +100,4 @@ samconfig.toml
 
 # AWS SAM CLI temporary files
 .sam-local/
+env.*

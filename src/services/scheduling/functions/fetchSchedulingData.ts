@@ -48,17 +48,17 @@ const fetchSchedulingData = async (
 
   // Updated SQL query for vacations with user IDs from the updated user list
   const userIds = users.map(user => user.id);
+
+  const monthStart = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const monthEnd = `${year}-${month.toString().padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
   const [vacationRows] = await tenantDb.query<RowDataPacket[]>(
     `
     SELECT * FROM Vacations 
     WHERE UserID IN (?)
-    AND (
-      (MONTH(StartDate) = ? AND YEAR(StartDate) = ?)
-      OR (MONTH(EndDate) = ? AND YEAR(EndDate) = ?)
-      OR (StartDate <= LAST_DAY(DATE(CONCAT(?, '-', ?, '-01'))) AND EndDate >= DATE(CONCAT(?, '-', ?, '-01')))
-    )
+    AND StartDate <= ?  -- Vacation starts before or during the month
+    AND EndDate >= ?    -- Vacation ends after or during the month
     `,
-    [userIds, month, year, month, year, year, month, year, month]
+    [userIds, monthEnd, monthStart]
   );
   
   const vacations: Vacation[] = vacationRows.map((vacation: RowDataPacket) => {

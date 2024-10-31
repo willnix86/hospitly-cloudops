@@ -26,6 +26,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "deploy": "npm run build && sam build && ts-node deploy.ts"
+    "deploy": "npm run build && sam build && ts-node deploy.ts",
+    "dev": "npm run deploy && sam local start-api"
   }
 }

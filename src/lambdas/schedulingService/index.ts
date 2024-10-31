@@ -1,35 +1,29 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { getUserSchedule } from '../../services/scheduling/scheduleService';
-
-function getPreviousMonth(month: number, year: number): { month: number, year: number } {
-    if (month === 1) {
-      return { month: 12, year: year - 1 };
-    } else {
-      return { month: month - 1, year };
-    }
-  }
+import { getCallScheduleData, getUserSchedule } from '../../services/scheduling/scheduleService';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const { action, userId, department, date, hospitalName } = JSON.parse(event.body || '{}');
 
+    console.log("EVENT BODY", event.body);
+
     const dateObject = new Date(date);
     const month = dateObject.getMonth() + 1; // getMonth() returns 0-11, so we add 1
     const year = dateObject.getFullYear();
-    const previousMonth = getPreviousMonth(month, year);
     
     switch (action) {
         case 'getUserSchedule':
-            const schedule = await getUserSchedule(hospitalName, userId, month, year, department);
+            const userSchedule = await getUserSchedule(hospitalName, userId, month, year, department);
 
             return {
                 statusCode: 200,
-                body: JSON.stringify({ schedule })
+                body: JSON.stringify(userSchedule)
             };
-        case 'getCallScheduleData':
+        case 'getCallSchedule':
+            const callSchedule = await getCallScheduleData(hospitalName, month, year, department);
             return {
                 statusCode: 200,
-                body: JSON.stringify({ schedule })
+                body: JSON.stringify(callSchedule ?? {})
             };
 
         default:
