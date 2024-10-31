@@ -2,6 +2,32 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Hospitly CloudOps Lambda Functions
 
+Architectures:
+  - arm64
+
+Parameters:
+  DBHost:
+    Type: String
+    Description: Master DB Host
+  DBUser:
+    Type: String
+    Description: Master DB User
+  DBPass:
+    Type: String
+    Description: Master DB Password
+  DBName:
+    Type: String
+    Description: Master DB Name
+  TenantUser:
+    Type: String
+    Description: Tenant DB User
+  TenantPassword:
+    Type: String
+    Description: Tenant DB Password
+  NodeEnv:
+    Type: String
+    Description: Node environment
+
 Globals:
   Function:
     Timeout: 30
@@ -10,6 +36,13 @@ Globals:
       Variables:
         AWS_REGION: !Ref AWS::Region
         LAMBDA_EXECUTION_ROLE: !GetAtt LambdaExecutionRole.Arn
+        MASTER_DB_HOST: !Ref DBHost
+        MASTER_DB_USER: !Ref DBUser
+        MASTER_DB_PASSWORD: !Ref DBPass
+        MASTER_DB_NAME: !Ref DBName
+        TENANT_DB_USER: !Ref TenantUser
+        TENANT_DB_PASSWORD: !Ref TenantPassword
+        NODE_ENV: !Ref NodeEnv
 
 Resources:
   HttpApi:
@@ -28,20 +61,20 @@ Resources:
   SchedulingServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/lambdas/schedulingService/
+      CodeUri: ./dist/schedulingService/
       Handler: index.handler
       Events:
         GetSchedule:
           Type: HttpApi
           Properties:
-            Path: /scheduling/getSchedule
-            Method: GET
+            Path: /scheduling/getCallSchedule
+            Method: POST
             ApiId: !Ref HttpApi
 
   TenantServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/lambdas/tenantService/
+      CodeUri: ./dist/tenantService/
       Handler: index.handler
       Events:
         CreateTenant:
@@ -60,7 +93,7 @@ Resources:
   UserServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/lambdas/userService/
+      CodeUri: ./dist/userService/
       Handler: index.handler
       Events:
         AddUsers:

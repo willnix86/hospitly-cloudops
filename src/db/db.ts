@@ -4,14 +4,18 @@ import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-sec
 
 dotenv.config();
 
+const getSslConfig = () => {
+    return process.env.NODE_ENV === 'prod' 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false };
+};
+
 export const masterDb: Pool = mysql.createPool({
     host: process.env.MASTER_DB_HOST,
     user: process.env.MASTER_DB_USER,
     password: process.env.MASTER_DB_PASSWORD,
     database: process.env.MASTER_DB_NAME,
-    ssl: {
-      rejectUnauthorized: true,
-    },
+    ssl: getSslConfig(),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -38,9 +42,7 @@ export const getTenantDb = async (hospitalName: string): Promise<Pool> => {
             user: process.env.TENANT_DB_USER,
             password: process.env.TENANT_DB_PASSWORD,
             database: dbName,
-            ssl: {
-              rejectUnauthorized: true,
-            },
+            ssl: getSslConfig(),
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0

@@ -1,4 +1,4 @@
-import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { RowDataPacket, ResultSetHeader, Pool } from 'mysql2/promise';
 import { format } from 'date-fns';
 
 import { getTenantDb } from '../../db/db';
@@ -202,51 +202,62 @@ interface CallScheduleData {
   adminDays: Shift[]
 }
 
-export const getCallScheduleData = async (
-  hospitalName: string,
+const fetchDepartmentScheduleForMonth = async (
+  tenantDb: Pool,
   month: number,
   year: number,
   department: Department
-): Promise<CallScheduleData | undefined> => {
-  const tenantDb = await getTenantDb(hospitalName);
-
+): Promise<Schedule | null> => {
   // Determine the start and end dates for the schedule
   const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
   const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
-  // Try to fetch existing CallSchedule
+  // Try to fetch existing schedule
   const [existingSchedules] = await tenantDb.query<RowDataPacket[]>(
     `SELECT s.* FROM Schedules s
      WHERE s.DepartmentID = ? AND s.StartDate = ? AND s.EndDate = ?`,
     [department.id, startDate, endDate]
   );
 
-  if (existingSchedules.length > 0) {
-    // CallSchedule exists, fetch and return it
-    const existingSchedule = existingSchedules[0];
-    const [shiftRows] = await tenantDb.query<RowDataPacket[]>(
-      `SELECT sh.ID as shiftId, sh.Date, sh.StartTime, sh.EndTime,
-              u.ID as userId, u.Name as userName,
-              st.ID as shiftTypeId, st.Name as shiftTypeName
-       FROM Shifts sh
-       JOIN Users u ON sh.UserID = u.ID
-       JOIN ShiftTypes st ON sh.ShiftTypeID = st.ID
-       WHERE sh.ScheduleID = ?`,
-      [existingSchedule.ID]
-    );
-    
-    const shifts: Shift[] = shiftRows.map(row => ({
-      id: row.shiftId,
-      user: {
-        id: row.userId,
-        name: row.userName,
-        position: {
-          id: row.positionId,
-          name: row.positionName,
-        },
-        department: department, // We already have the department from the function parameters
-        isEditor: row.isEditor,
+  if (existingSchedules.length === 0) {
+    return null;
+  }
+
+  // Fetch all shifts for this schedule
+  const [shiftRows] = await tenantDb.query<RowDataPacket[]>(
+    `SELECT sh.*, u.*, st.*,
+            u.ID as userId, u.Name as userName,
+            st.ID as shiftTypeId, st.Name as shiftTypeName,
+            p.ID as positionId, p.Name as positionName
+     FROM Shifts sh
+     JOIN Users u ON sh.UserID = u.ID
+     JOIN ShiftTypes st ON sh.ShiftTypeID = st.ID
+     JOIN Positions p ON u.PositionID = p.ID
+     WHERE sh.ScheduleID = ?`,
+    [existingSchedules[0].ID]
+  );
+
+  // Convert to Schedule object
+  const schedule: Schedule = {};
+  
+  shiftRows.forEach(row => {
+    const user = {
+      id: row.userId,
+      name: row.userName,
+      position: {
+        id: row.positionId,
+        name: row.positionName,
       },
+      department,
+      isEditor: row.isEditor,
+    };
+
+    if (!schedule[user.name]) {
+      schedule[user.name] = { shifts: [] };
+    }
+
+    schedule[user.name].shifts.push({
+      user,
       date: row.Date,
       shiftType: {
         id: row.shiftTypeId,
@@ -256,66 +267,114 @@ export const getCallScheduleData = async (
       },
       startTime: row.StartTime,
       endTime: row.EndTime,
-    }));
+    });
+  });
 
-    // Convert the database rows to a Schedule object
+  return schedule;
+};
+
+const getPreviousMonthSchedule = async (
+  hospitalName: string,
+  month: number,
+  year: number,
+  department: Department
+): Promise<Schedule | null> => {
+  const tenantDb = await getTenantDb(hospitalName);
+  
+  // Calculate previous month and year
+  let previousMonth = month - 1;
+  let previousYear = year;
+  if (previousMonth === 0) {
+    previousMonth = 12;
+    previousYear--;
+  }
+
+  return fetchDepartmentScheduleForMonth(tenantDb, previousMonth, previousYear, department);
+};
+
+export const getCallScheduleData = async (
+  hospitalName: string,
+  month: number,
+  year: number,
+  department: Department
+): Promise<CallScheduleData | undefined> => {
+  const tenantDb = await getTenantDb(hospitalName);
+
+  // Try to fetch existing CallSchedule
+  const existingSchedule = await fetchDepartmentScheduleForMonth(tenantDb, month, year, department);
+
+  if (existingSchedule) {
+    // Convert existing schedule to CallScheduleData format
     const callShifts: Shift[] = [];
     const vacationDays: Shift[] = [];
     const adminDays: Shift[] = [];
 
-    shifts.forEach(shift => {
-      switch (shift.shiftType.name) {
-        case ShiftTypeEnum.OnCall:
-          callShifts.push(shift);
-          break;
-        case ShiftTypeEnum.Vacation:
-          vacationDays.push(shift);
-          break;
-        case ShiftTypeEnum.Admin:
-          adminDays.push(shift);
-          break;
-      }
+    Object.values(existingSchedule).forEach(userSchedule => {
+      userSchedule.shifts.forEach(shift => {
+        switch (shift.shiftType.name) {
+          case ShiftTypeEnum.OnCall:
+            callShifts.push(shift);
+            break;
+          case ShiftTypeEnum.Vacation:
+            vacationDays.push(shift);
+            break;
+          case ShiftTypeEnum.Admin:
+            adminDays.push(shift);
+            break;
+        }
+      });
     });
 
+    const startDate = new Date(year, month - 1, 1);
     return {
-      month: format(startDate, 'YYYY-MM'),
-      callShifts,
-      vacationDays,
-      adminDays
+      month: format(startDate, 'yyyy-MM'),
+      callShifts: callShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      vacationDays: vacationDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      adminDays: adminDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     };
   } else {
-    // CallSchedule doesn't exist, generate a new one
+    // Get previous month's schedule
+    const previousMonthSchedule = await getPreviousMonthSchedule(hospitalName, month, year, department);
+
+    if (!previousMonthSchedule) {
+      return;
+    }
+    
+    // Generate new schedule using previous month's data
     const daysInMonth = new Date(year, month, 0).getDate();
     const scheduleData = await fetchSchedulingData(tenantDb, month, year, department);
-    const newCallSchedule = generateCallSchedule(scheduleData, department, daysInMonth, year, month);
+    const newCallSchedule = generateCallSchedule(scheduleData, department, daysInMonth, year, month, previousMonthSchedule);
 
-    // TODO: ensure we can save/update schedules correctly
+    // Save the new schedule
+    await saveScheduleToDb(hospitalName, newCallSchedule, month, year, department, scheduleData.users);
 
-    // // Save the new CallSchedule to the database
-    // const [result] = await tenantDb.query<ResultSetHeader>(
-    //   `INSERT INTO Schedules (DepartmentID, StartDate, EndDate) 
-    //    VALUES (?, ?, ?)`,
-    //   [department.id, startDate, endDate]
-    // );
+    // Convert and return the schedule in CallScheduleData format
+    const callShifts: Shift[] = [];
+    const vacationDays: Shift[] = [];
+    const adminDays: Shift[] = [];
 
-    // const scheduleId = result.insertId;
+    Object.values(newCallSchedule).forEach(userSchedule => {
+      userSchedule.shifts.forEach(shift => {
+        switch (shift.shiftType.name) {
+          case ShiftTypeEnum.OnCall:
+            callShifts.push(shift);
+            break;
+          case ShiftTypeEnum.Vacation:
+            vacationDays.push(shift);
+            break;
+          case ShiftTypeEnum.Admin:
+            adminDays.push(shift);
+            break;
+        }
+      });
+    });
 
-    // // Save the shifts
-    // for (const [userName, userSchedule] of Object.entries(newCallSchedule)) {
-    //   const user = scheduleData.users.find(u => u.name === userName);
-    //   if (!user) continue;
-
-    //   for (const shift of userSchedule.shifts) {
-    //     if (shift.shiftType.name === ShiftTypeEnum.OnCall) {
-    //       await tenantDb.query(
-    //         `INSERT INTO Shifts (ScheduleID, UserID, ShiftTypeID, Date, StartTime, EndTime) 
-    //          VALUES (?, ?, ?, ?, ?, ?)`,
-    //         [scheduleId, user.id, shift.shiftType.id, shift.date, shift.startTime, shift.endTime]
-    //       );
-    //     }
-    //   }
-    // }
-
-    return;
+    const startDate = new Date(year, month - 1, 1);
+    return {
+      month: format(startDate, 'yyyy-MM'),
+      callShifts: callShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      vacationDays: vacationDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      adminDays: adminDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    };
   }
 };
