@@ -1,10 +1,8 @@
 import { RowDataPacket } from 'mysql2/promise';
-import { getDaysInMonth } from 'date-fns'; // Importing date-fns to help with date handling
 
 import { getTenantDb } from '../../db/db';
 import { fetchSchedulingData, createNewScheduleForUser } from './functions';
 import { Schedule, Department, Shift, Position, User, ScheduleError } from '../../models';
-import { dateFromMonthYear } from '../../utils';
 
 export const getUserSchedule = async (
     tenantDbName: string,
