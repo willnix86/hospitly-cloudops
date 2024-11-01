@@ -1,15 +1,17 @@
-import { format, isWeekend } from 'date-fns';
+import { format, isWeekend, getDaysInMonth } from 'date-fns';
 import { Schedule, ShiftTypeEnum, ScheduleData } from '../../../models'; // Assuming you have a User and Schedule model already defined
 import createShift from './createShift';
+import { dateFromMonthYear } from '../../../utils';
 
-const populateSchedule = (
+const addAvailabilityAndWeekendToSchedule = (
   schedule: Schedule, 
   scheduleData: ScheduleData, 
-  daysInMonth: number, 
   year: number, 
   month: number
 ): Schedule => {
   const { users, shiftTypes } = scheduleData;
+  const date = dateFromMonthYear(month, year);
+  const daysInMonth = getDaysInMonth(date);
 
   const weekendShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Weekend)!;
   const availableShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Available)!;
@@ -51,4 +53,4 @@ const populateSchedule = (
   return schedule; // Return the updated schedule
 };
 
-export default populateSchedule;
+export default addAvailabilityAndWeekendToSchedule;

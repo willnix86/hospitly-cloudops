@@ -1,5 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { getCallScheduleData, getUserSchedule } from '../../services/scheduling/scheduleService';
+import { getCallScheduleData } from '../../services/scheduling/callScheduleService';
+import { getUserSchedule } from '../../services/scheduling/userScheduleService';
+
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {

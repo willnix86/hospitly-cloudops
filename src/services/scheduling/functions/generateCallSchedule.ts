@@ -1,5 +1,3 @@
-import { format, eachDayOfInterval } from 'date-fns'; // Importing date-fns to help with date handling
-
 import { User, Department, ScheduleData, Schedule, ShiftTypeEnum, Shift } from '../../../models';
 import createShift from './createShift';
 
@@ -13,6 +11,7 @@ const seniorityWeights: {[index: string]: number} = {
 };
 
 const generateCallSchedule = (
+  schedule: Schedule,
   scheduleData: ScheduleData,
   department: Department, // add department as a parameter
   daysInMonth: number,
@@ -23,8 +22,6 @@ const generateCallSchedule = (
   const { rules, users, vacations, adminDays, shiftTypes } = scheduleData;
 
   const callShift = shiftTypes.find(s => s.name === ShiftTypeEnum.OnCall)!;
-  const vacationShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Vacation)!;
-  const adminShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Admin)!;
   const restShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Rest)!;
 
   const maxWorkHoursRule = rules.find(rule => rule.name === 'Max Work Hours')?.value || 80;
@@ -38,11 +35,6 @@ const generateCallSchedule = (
   const seniorResidents = users.filter(user => {
     return user.department == department &&
     ['PGY4', 'PGY5', 'PGY6'].includes(user.position.name)
-  });
-
-  const schedule: Schedule = {};
-  users.forEach(user => {
-    schedule[user.name] = { shifts: [] };
   });
 
   const bootstrapSchedule = (users: User[], daysInMonth: number): Schedule => {
@@ -77,35 +69,6 @@ const generateCallSchedule = (
     }
   
     return schedule;
-  };
-
-  const markDaysOff = (user: User, schedule: Schedule) => {
-    const userSchedule = schedule[user.name];
-
-    vacations
-      .filter(v => v.user.id === user.id)
-      .forEach(v => {
-        const vacationDates = eachDayOfInterval({
-          start: new Date(v.startDate),
-          end: new Date(v.endDate)
-        });
-
-        vacationDates.forEach(date => {
-          const vacationDate = format(date, 'yyyy-MM-dd');
-          if (!userSchedule.shifts.some(s => s.date === vacationDate)) {
-            schedule[user.name].shifts.push(createShift(user, vacationDate, vacationShift));
-          }
-        });
-      });
-
-    adminDays
-      .filter(a => a.user.id === user.id)
-      .forEach(a => {
-        const adminDate = a.date.toString().split('T')[0];
-        if (!userSchedule.shifts.some(s => s.date === adminDate)) {
-          schedule[user.name].shifts.push(createShift(user, adminDate, adminShift));
-        }
-      });
   };
 
   const isAvailable = (
@@ -370,10 +333,6 @@ const generateCallSchedule = (
   
   // Run the rebalancing process
   rebalanceShifts();
-
-  users.forEach(user => {
-    markDaysOff(user, schedule);
-  });
 
   distributeShifts(1);
   rebalanceShifts();

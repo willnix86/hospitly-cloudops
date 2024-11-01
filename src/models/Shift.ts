@@ -53,4 +53,8 @@ interface ScheduleData {
     shiftTypes: ShiftType[]
 }
 
-export { ShiftTypeEnum, ShiftType, Shift, Schedule, ScheduleData };
+interface ScheduleError {
+    message: string
+}
+
+export { ShiftTypeEnum, ShiftType, Shift, Schedule, ScheduleData, ScheduleError };

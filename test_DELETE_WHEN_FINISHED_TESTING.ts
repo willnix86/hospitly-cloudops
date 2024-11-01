@@ -1,7 +1,7 @@
 // test/createTenantTest.ts
 import { getTenantDb } from './src/db/db';
 
-import { generateWorkSchedule } from './src/services/scheduling/scheduleService';
+import { generateWorkSchedule } from './src/services/scheduling/callScheduleService';
 import { createNewTenant } from './src/services/tenants/tenantService';
 import { Department } from './src/models';
 import { departments, users } from './testing/mocks/UserMocks';
