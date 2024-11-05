@@ -49,7 +49,7 @@ const createNewScheduleForUser = (
     schedule[user.name] = { shifts: [] };
 
     schedule = markDaysOff(user, schedule, scheduleData)
-    schedule = addAvailabilityAndWeekendToSchedule(schedule, scheduleData, year, month)
+    schedule = addAvailabilityAndWeekendToSchedule(schedule, scheduleData, month, year)
 
     return schedule
 }

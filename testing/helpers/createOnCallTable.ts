@@ -46,4 +46,4 @@ const createOnCallTable = (schedule: Schedule, users: User[], month: number, yea
     return table;
 };
 
-export { createOnCallTable };
+export default createOnCallTable;

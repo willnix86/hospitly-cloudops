@@ -1,3 +1,5 @@
+import { Shift } from ".";
+
 export interface User {
     id?: number;
     name: string;
@@ -14,4 +16,15 @@ export interface Department {
 export interface Position {
     id?: number;
     name: string;
+}
+export interface UserScheduleData {
+    shifts: Shift[];
+    workHours: {
+        total: number;
+        remaining: number;
+    };
+    notifications?: Array<{
+        message: string;
+        type: string;
+    }>;
 }

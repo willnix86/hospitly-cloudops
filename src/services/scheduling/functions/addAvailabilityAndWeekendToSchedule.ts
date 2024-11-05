@@ -3,11 +3,13 @@ import { Schedule, ShiftTypeEnum, ScheduleData } from '../../../models'; // Assu
 import createShift from './createShift';
 import { dateFromMonthYear } from '../../../utils';
 
+// TODO: Update so that we assign day/night shift based on user(?)
+
 const addAvailabilityAndWeekendToSchedule = (
   schedule: Schedule, 
   scheduleData: ScheduleData, 
-  year: number, 
-  month: number
+  month: number, 
+  year: number
 ): Schedule => {
   const { users, shiftTypes } = scheduleData;
   const date = dateFromMonthYear(month, year);
@@ -15,14 +17,19 @@ const addAvailabilityAndWeekendToSchedule = (
 
   const weekendShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Weekend)!;
   const availableShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Available)!;
+  const dayShift = shiftTypes.find(s => s.name === ShiftTypeEnum.DayShift)!;
+  const nightShift = shiftTypes.find(s => s.name === ShiftTypeEnum.NightShift)!;
 
   // Iterate through each user in the schedule
   users.forEach(user => {
+    if (!schedule[user.name]) {
+      schedule[user.name] = { shifts: [] };
+    }
     const userSchedule = schedule[user.name];
     
     // Loop through each day of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month - 1, day); // Create the date object for the given day
+      date.setDate(day);
       const formattedDate = format(date, 'yyyy-MM-dd'); // Format the date to match the keys in the schedule
 
       // Check if there's already a shift for this date
@@ -42,7 +49,7 @@ const addAvailabilityAndWeekendToSchedule = (
         }
       } else {
         if (!existingShift) {
-          userSchedule.shifts.push(createShift(user, formattedDate, availableShift));
+          userSchedule.shifts.push(createShift(user, formattedDate, dayShift));
         }
       }
 

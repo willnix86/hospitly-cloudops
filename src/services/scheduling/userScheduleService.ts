@@ -1,17 +1,17 @@
 import { RowDataPacket } from 'mysql2/promise';
 
 import { getTenantDb } from '../../db/db';
-import { fetchSchedulingData, createNewScheduleForUser } from './functions';
-import { Schedule, Department, Shift, Position, User, ScheduleError } from '../../models';
+import { fetchSchedulingData, createNewScheduleForUser, saveScheduleToDb } from './functions';
+import { Schedule, Department, Shift, User, ScheduleError } from '../../models';
 
 export const getUserSchedule = async (
-    tenantDbName: string,
+    hospitalName: string,
     userId: number,
     month: number,
     year: number,
     department: Department
-): Promise<Schedule | ScheduleError> => {
-    const tenantDb = await getTenantDb(tenantDbName);
+): Promise<Shift[] | ScheduleError> => {
+    const tenantDb = await getTenantDb(hospitalName);
 
     // Fetch the user's schedule from the database
     const [scheduleRows] = await tenantDb.query<RowDataPacket[]>(
@@ -30,7 +30,6 @@ export const getUserSchedule = async (
         );
 
         // Convert the database rows to a Schedule object
-        const schedule: Schedule = {};
         const [userRows] = await tenantDb.query<RowDataPacket[]>(
         `SELECT u.*, p.ID as PositionID, p.Name as PositionName 
             FROM Users u
@@ -40,7 +39,7 @@ export const getUserSchedule = async (
         );
 
         if (userRows.length === 0) {
-        throw new Error(`User with ID ${userId} not found`);
+            throw new Error(`User with ID ${userId} not found`);
         }
 
         const userRow = userRows[0];
@@ -50,7 +49,7 @@ export const getUserSchedule = async (
         position: {
             id: userRow.PositionID,
             name: userRow.PositionName
-        } as Position,
+        },
         department: department,
         isEditor: userRow.isEditor
         };
@@ -68,11 +67,7 @@ export const getUserSchedule = async (
         endTime: shift.EndTime
         }));
 
-        schedule[user.name] = { 
-        shifts
-        };
-
-        return schedule;
+        return shifts;
     } else {
         const scheduleData = await fetchSchedulingData(tenantDb, month, year, department);
         const user = scheduleData.users.find(user => user.id == userId);
@@ -82,8 +77,12 @@ export const getUserSchedule = async (
         }
 
         let schedule: Schedule = {};
-        schedule = createNewScheduleForUser(user, schedule, scheduleData, year, month)
-        return schedule;
+        schedule = createNewScheduleForUser(user, schedule, scheduleData, month, year)
+
+        // Save the generated schedule to the database
+        // await saveScheduleToDb(hospitalName, schedule, month, year, department, [user]);
+
+        return schedule[user.name].shifts;
     }
 };
   

@@ -24,6 +24,7 @@ export const getCallScheduleData = async (
   const existingSchedule = await fetchDepartmentScheduleForMonth(tenantDb, month, year, department);
 
   if (existingSchedule) {
+    console.log("EXISTING SCHDULE FOUND")
     // Convert existing schedule to CallScheduleData format
     const callShifts: Shift[] = [];
     const vacationDays: Shift[] = [];
@@ -53,15 +54,22 @@ export const getCallScheduleData = async (
       adminDays: adminDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     };
   } else {
+    console.log("NO SCHDULE FOUND")
     // Get previous month's schedule
     const previousMonthSchedule = await getPreviousMonthsSchedule(hospitalName, month, year, department);
 
-    if (!previousMonthSchedule) {
-      return;
-    }
+    console.log("previousMonthSchedule", previousMonthSchedule)
+
+    // TODO: We don't want to allow backward navigation / creation of fake previous months
+    // NEED TO FIGURE OUT HOW TO CREATE FIRST MONTH OF DATA FOR NEW USERS
+    // if (!previousMonthSchedule) {
+    //   return;
+    // }
     
     // Generate new schedule using previous month's data
     const newCallSchedule = await generateWorkScheduleForDepartment(hospitalName, month, year, department, previousMonthSchedule);
+
+    console.log("newCallSchedule", newCallSchedule)
 
     // Convert and return the schedule in CallScheduleData format
     const callShifts: Shift[] = [];

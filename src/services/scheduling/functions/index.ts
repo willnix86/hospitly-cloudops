@@ -7,6 +7,7 @@ import generateCallSchedule from "./generateCallSchedule";
 import getPreviousMonthsSchedule from './getPreviousMonthsSchedule';
 import saveScheduleToDb from "./saveScheduleToDb";
 import generateWorkScheduleForDepartment from './generateWorkScheduleForDepartment';
+import transformShiftsToUserScheduleData from './transformShiftsToUserScheduleData';
 
 export { 
     addAvailabilityAndWeekendToSchedule,
@@ -17,5 +18,6 @@ export {
     getPreviousMonthsSchedule,
     generateCallSchedule,
     generateWorkScheduleForDepartment,
-    saveScheduleToDb
+    saveScheduleToDb,
+    transformShiftsToUserScheduleData
  }

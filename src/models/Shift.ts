@@ -13,12 +13,6 @@ enum ShiftTypeEnum {
     Weekend = 'Off (Weekend)',
     Available = 'Available'  // When the user has no specific shift
 }
-
-interface ShiftTimes {
-    startTime: string;
-    endTime: string;
-}
-
 // Interface representing a ShiftType, matching the ShiftTypes table in the DB.
 interface ShiftType {
     id?: number;

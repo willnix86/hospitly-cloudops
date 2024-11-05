@@ -9,6 +9,7 @@ import {
     fetchSchedulingData 
 } from '.';
 import { dateFromMonthYear } from '../../../utils';
+import createOnCallTable from '../../../../testing/helpers/createOnCallTable';
 
 const generateWorkScheduleForDepartment = async (
     hospitalName: string,
@@ -31,7 +32,9 @@ const generateWorkScheduleForDepartment = async (
     });
   
     // Generate call schedule
-    let finalSchedule = generateCallSchedule(schedule, scheduleData, department, daysInMonth, year, month, previousMonthSchedule);
+    let finalSchedule = generateCallSchedule(schedule, scheduleData, department, daysInMonth, year, month);
+
+    console.log("finalSchedule", finalSchedule)
   
     // Save the generated schedule to the database
     await saveScheduleToDb(hospitalName, finalSchedule, month, year, department, scheduleData.users);

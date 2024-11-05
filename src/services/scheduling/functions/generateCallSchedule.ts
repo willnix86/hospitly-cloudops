@@ -19,7 +19,7 @@ const generateCallSchedule = (
   month: number,
   previousMonthSchedule: Schedule | null = null // optional parameter for previous month schedule,
 ): Schedule => {
-  const { rules, users, vacations, adminDays, shiftTypes } = scheduleData;
+  const { rules, users, shiftTypes } = scheduleData;
 
   const callShift = shiftTypes.find(s => s.name === ShiftTypeEnum.OnCall)!;
   const restShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Rest)!;
