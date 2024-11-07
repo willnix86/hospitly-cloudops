@@ -70,6 +70,12 @@ Resources:
             Path: /scheduling/getCallSchedule
             Method: POST
             ApiId: !Ref HttpApi
+        RegenerateSchedule:
+          Type: HttpApi
+          Properties:
+            Path: /scheduling/regenerateSchedule
+            Method: POST
+            ApiId: !Ref HttpApi
         GetUserSchedule:
           Type: HttpApi
           Properties:

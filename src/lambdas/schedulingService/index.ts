@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { getCallScheduleData, getUserSchedule } from '../../services/scheduling/scheduleService';
+import { getCallScheduleData, getUserSchedule, regenerateScheduleForDepartment } from '../../services/scheduling/scheduleService';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -25,7 +25,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 statusCode: 200,
                 body: JSON.stringify(callSchedule ?? {})
             };
-
+        case 'regenerateSchedule':
+          const regeneratedSchedule = await regenerateScheduleForDepartment(
+              hospitalName,
+              month,
+              year,
+              department
+          );
+          return {
+              statusCode: 200,
+              body: JSON.stringify(regeneratedSchedule)
+          };
         default:
             return {
                 statusCode: 400,
