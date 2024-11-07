@@ -5,8 +5,8 @@ import { User, Shift, ShiftType } from '../../../models';
     user,
     date,
     shiftType,
-    startTime: '',
-    endTime: ''
+    startTime: shiftType.startTime,
+    endTime: shiftType.endTime
   });
 
   export default createShift;

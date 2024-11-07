@@ -64,10 +64,16 @@ Resources:
       CodeUri: ./dist/schedulingService/
       Handler: index.handler
       Events:
-        GetSchedule:
+        GetCallSchedule:
           Type: HttpApi
           Properties:
             Path: /scheduling/getCallSchedule
+            Method: POST
+            ApiId: !Ref HttpApi
+        GetUserSchedule:
+          Type: HttpApi
+          Properties:
+            Path: /scheduling/getUserSchedule
             Method: POST
             ApiId: !Ref HttpApi
 

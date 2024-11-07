@@ -12,6 +12,8 @@ const populateSchedule = (
   const { users, shiftTypes } = scheduleData;
 
   const weekendShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Weekend)!;
+  const dayShift = shiftTypes.find(s => s.name === ShiftTypeEnum.DayShift)!;
+  const nightShift = shiftTypes.find(s => s.name === ShiftTypeEnum.NightShift)!;
   const availableShift = shiftTypes.find(s => s.name === ShiftTypeEnum.Available)!;
 
   // Iterate through each user in the schedule
@@ -40,7 +42,7 @@ const populateSchedule = (
         }
       } else {
         if (!existingShift) {
-          userSchedule.shifts.push(createShift(user, formattedDate, availableShift));
+          userSchedule.shifts.push(createShift(user, formattedDate, dayShift));
         }
       }
 

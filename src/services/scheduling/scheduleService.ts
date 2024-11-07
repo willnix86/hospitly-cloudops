@@ -114,7 +114,7 @@ export const getUserSchedule = async (
   month: number,
   year: number,
   department: Department
-): Promise<Schedule | undefined> => {
+): Promise<Shift[]> => {
   const tenantDb = await getTenantDb(tenantDbName);
 
   // Fetch the user's schedule from the database
@@ -172,11 +172,7 @@ export const getUserSchedule = async (
       endTime: shift.EndTime
     }));
 
-    schedule[user.name] = { 
-      shifts
-    };
-
-    return schedule;
+    return shifts;
   } else {
     // TODO: Figure out how to create a single user's schedule
 
@@ -191,7 +187,7 @@ export const getUserSchedule = async (
     // }
 
     // return userSchedule;
-    return;
+    return [];
   }
 };
 
@@ -336,10 +332,6 @@ export const getCallScheduleData = async (
     // Get previous month's schedule
     const previousMonthSchedule = await getPreviousMonthSchedule(hospitalName, month, year, department);
 
-    if (!previousMonthSchedule) {
-      return;
-    }
-    
     // Generate new schedule using previous month's data
     const daysInMonth = new Date(year, month, 0).getDate();
     const scheduleData = await fetchSchedulingData(tenantDb, month, year, department);

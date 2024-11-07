@@ -158,6 +158,9 @@ const generateCallSchedule = (
     schedule: Schedule, 
     previousMonthSchedule: Schedule | null
   ): User[] => {
+    // Add randomization factor between 0.8 and 1.2
+    const getRandomFactor = () => 0.8 + Math.random() * 0.4;
+  
     return users.sort((a, b) => {
       const aShiftsCurrentMonth = schedule[a.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length;
       const bShiftsCurrentMonth = schedule[b.name].shifts.filter(shift => shift.shiftType.name === ShiftTypeEnum.OnCall).length;
@@ -172,45 +175,56 @@ const generateCallSchedule = (
       const aSeniorityWeight = seniorityWeights[a.position.name] || 1.0;
       const bSeniorityWeight = seniorityWeights[b.position.name] || 1.0;
   
-      // Sort primarily by total shifts adjusted for seniority, then by previous month
+      // Apply random factors to create variation while maintaining general fairness
+      const aRandomFactor = getRandomFactor();
+      const bRandomFactor = getRandomFactor();
+  
       return (
-        (aShiftsCurrentMonth * aSeniorityWeight - bShiftsCurrentMonth * bSeniorityWeight) ||
-        (aShiftsPreviousMonth * aSeniorityWeight - bShiftsPreviousMonth * bSeniorityWeight)
+        ((aShiftsCurrentMonth * aSeniorityWeight * aRandomFactor) - 
+         (bShiftsCurrentMonth * bSeniorityWeight * bRandomFactor)) ||
+        ((aShiftsPreviousMonth * aSeniorityWeight * aRandomFactor) - 
+         (bShiftsPreviousMonth * bSeniorityWeight * bRandomFactor))
       );
     });
   };
 
   const distributeShifts = (day: number): boolean => {
     if (day > daysInMonth) return true;
-
+  
+    const date = new Date(year, month - 1, day).toISOString().split('T')[0];
+  
+    // Get all available residents for this day
+    const availableJuniors = juniorResidents.filter(user => 
+      canWorkShift(user, schedule[user.name].shifts, day) &&
+      !schedule[user.name].shifts.some(s => s.date === date)
+    );
+  
+    const availableSeniors = seniorResidents.filter(user => 
+      canWorkShift(user, schedule[user.name].shifts, day) &&
+      !schedule[user.name].shifts.some(s => s.date === date)
+    );
+  
+    // Randomly shuffle available residents while respecting shift count priorities
+    const shuffledJuniors = prioritizeUsersByShiftCountAndPreviousMonth(availableJuniors, schedule, previousMonthSchedule);
+    const shuffledSeniors = prioritizeUsersByShiftCountAndPreviousMonth(availableSeniors, schedule, previousMonthSchedule);
+  
+    // Attempt to assign shifts
     let assignedJunior = false;
     let assignedSenior = false;
-    const date = new Date(year, month - 1, day).toISOString().split('T')[0];
-
-    const prioritizedJuniorResidents = prioritizeUsersByShiftCountAndPreviousMonth(juniorResidents, schedule, previousMonthSchedule);
-    for (const user of prioritizedJuniorResidents) {
-      const userSchedule = schedule[user.name];
-      if (canWorkShift(user, userSchedule.shifts, day) && !assignedJunior) {
-        if (!userSchedule.shifts.some(s => s.date === date)) {
-          userSchedule.shifts.push(createShift(user, date, callShift));
-          assignedJunior = true;
-        }
-        break;
-      }
+  
+    if (shuffledJuniors.length > 0) {
+      const selectedJunior = shuffledJuniors[0];
+      schedule[selectedJunior.name].shifts.push(createShift(selectedJunior, date, callShift));
+      assignedJunior = true;
     }
-
-    const prioritizedSeniorResidents = prioritizeUsersByShiftCountAndPreviousMonth(seniorResidents, schedule, previousMonthSchedule);
-    for (const user of prioritizedSeniorResidents) {
-      const userSchedule = schedule[user.name];
-      if (canWorkShift(user, userSchedule.shifts, day) && !assignedSenior) {
-        if (!userSchedule.shifts.some(s => s.date === date)) {
-          userSchedule.shifts.push(createShift(user, date, callShift));
-          assignedSenior = true;
-        }
-        break;
-      }
+  
+    if (shuffledSeniors.length > 0) {
+      const selectedSenior = shuffledSeniors[0];
+      schedule[selectedSenior.name].shifts.push(createShift(selectedSenior, date, callShift));
+      assignedSenior = true;
     }
-
+  
+    // Handle cases where we couldn't assign both shifts
     if (!assignedJunior || !assignedSenior) {
       const findResidentWithFewestShifts = (residents: User[], schedule: Schedule, previousMonthSchedule: Schedule | null): User | null => {
         const prioritizedResidents = prioritizeUsersByShiftCountAndPreviousMonth(residents, schedule, previousMonthSchedule);
