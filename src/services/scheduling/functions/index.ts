@@ -1,3 +1,4 @@
 import generateCallSchedule from "./generateCallSchedule";
+import checkScheduleCoverage from "./checkScheduleCoverage";
 
-export default { generateCallSchedule }
+export default { generateCallSchedule, checkScheduleCoverage }

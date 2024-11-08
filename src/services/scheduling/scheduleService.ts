@@ -5,6 +5,7 @@ import { getTenantDb } from '../../db/db';
 import fetchSchedulingData from './functions/fetchSchedulingData';
 import generateCallSchedule from './functions/generateCallSchedule';
 import populateSchedule from './functions/populateRemainingSchedule';
+import checkScheduleCoverage from './functions/checkScheduleCoverage';
 
 import { Schedule, Department, User, Position, Shift, ShiftTypeEnum } from '../../models';
 import { createOnCallTable } from '../../../testing/helpers/createOnCallTable';
@@ -295,57 +296,47 @@ export const getCallScheduleData = async (
   department: Department
 ): Promise<CallScheduleData | undefined> => {
   const tenantDb = await getTenantDb(hospitalName);
+  const MAX_ATTEMPTS = 5;
+  let attempts = 0;
+  let bestSchedule: Schedule | null = null;
 
-  // Try to fetch existing CallSchedule
+  // Try to fetch existing schedule first
   const existingSchedule = await fetchDepartmentScheduleForMonth(tenantDb, month, year, department);
-
-  if (existingSchedule) {
-    // Convert existing schedule to CallScheduleData format
-    const callShifts: Shift[] = [];
-    const vacationDays: Shift[] = [];
-    const adminDays: Shift[] = [];
-
-    Object.values(existingSchedule).forEach(userSchedule => {
-      userSchedule.shifts.forEach(shift => {
-        switch (shift.shiftType.name) {
-          case ShiftTypeEnum.OnCall:
-            callShifts.push(shift);
-            break;
-          case ShiftTypeEnum.Vacation:
-            vacationDays.push(shift);
-            break;
-          case ShiftTypeEnum.Admin:
-            adminDays.push(shift);
-            break;
-        }
-      });
-    });
-
-    const startDate = new Date(year, month - 1, 1);
-    return {
-      month: format(startDate, 'yyyy-MM'),
-      callShifts: callShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-      vacationDays: vacationDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-      adminDays: adminDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    };
+  if (existingSchedule && checkScheduleCoverage(existingSchedule, month, year)) {
+    bestSchedule = existingSchedule;
   } else {
-    // Get previous month's schedule
-    const previousMonthSchedule = await getPreviousMonthSchedule(hospitalName, month, year, department);
+    // Attempt to regenerate schedule multiple times
+    while (attempts < MAX_ATTEMPTS) {
+      attempts++;
+      console.log(`Attempting to generate schedule - Attempt ${attempts}/${MAX_ATTEMPTS}`);
+      
+      const newSchedule = await regenerateScheduleForDepartment(
+        hospitalName,
+        month,
+        year,
+        department
+      );
+      
+      // If we get full coverage, use this schedule
+      if (checkScheduleCoverage(newSchedule, month, year)) {
+        bestSchedule = newSchedule;
+        break;
+      }
+      
+      // If this is our first attempt or this schedule is better than our previous best
+      if (!bestSchedule) {
+        bestSchedule = newSchedule;
+      }
+    }
+  }
 
-    // Generate new schedule using previous month's data
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const scheduleData = await fetchSchedulingData(tenantDb, month, year, department);
-    const newCallSchedule = generateCallSchedule(scheduleData, department, daysInMonth, year, month, previousMonthSchedule);
-
-    // Save the new schedule
-    await saveScheduleToDb(hospitalName, newCallSchedule, month, year, department, scheduleData.users);
-
-    // Convert and return the schedule in CallScheduleData format
+  // Convert schedule to CallScheduleData format
+  if (bestSchedule) {
     const callShifts: Shift[] = [];
     const vacationDays: Shift[] = [];
     const adminDays: Shift[] = [];
 
-    Object.values(newCallSchedule).forEach(userSchedule => {
+    Object.values(bestSchedule).forEach(userSchedule => {
       userSchedule.shifts.forEach(shift => {
         switch (shift.shiftType.name) {
           case ShiftTypeEnum.OnCall:
@@ -369,14 +360,15 @@ export const getCallScheduleData = async (
       adminDays: adminDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     };
   }
+
+  return undefined;
 };
 
 export const regenerateScheduleForDepartment = async (
   hospitalName: string,
   month: number,
   year: number,
-  department: Department,
-  force: boolean = false
+  department: Department
 ): Promise<Schedule> => {
   const tenantDb = await getTenantDb(hospitalName);
 
